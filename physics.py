@@ -18,6 +18,9 @@ def rotate_vec(omega, phi): # Rotate around omega matrix
 relative_system = np.eye(3)
 absolute_system = np.eye(3)
 
+position = start_position
+velocity = start_velocity
+
 g_abs = absolute_system[2, :] * 9.8
 
 J_ball = np.eye(3)*( 2.0/5.0 * m_ball**2)
@@ -65,6 +68,12 @@ w3 = A[2,:] / np.linalg.norm(A[2,:]) * w_start[2]
 w4 = A[3,:] / np.linalg.norm(A[3,:]) * w_start[3]
 W = np.array([w1, w2, w3, w4])
 
+e1 = A[0,:] / np.linalg.norm(A[0,:]) * e_start[0]
+e2 = A[1,:] / np.linalg.norm(A[1,:]) * e_start[1]
+e3 = A[2,:] / np.linalg.norm(A[2,:]) * e_start[2]
+e4 = A[3,:] / np.linalg.norm(A[3,:]) * e_start[3]
+E = np.array([e1, e2, e3, e4])
+
 dr1 = np.cross(B[0,:], W[0,:]) # Give right formulas
 dr2 = np.cross(B[1,:], W[1,:]) #
 dr3 = np.cross(B[2,:], W[2,:]) #
@@ -75,5 +84,33 @@ dJdt = (np.linalg.outer(dr1,r1) + np.linalg.outer(r1,dr1))* dot_masses[0] +\
        (np.linalg.outer(dr3,r3) + np.linalg.outer(r3,dr3))* dot_masses[2] +\
        (np.linalg.outer(dr4,r4) + np.linalg.outer(r4,dr4))* dot_masses[3] 
 
+e1 = A[0,:] / np.linalg.norm(A[0,:]) * e_start[0]
+e2 = A[1,:] / np.linalg.norm(A[1,:]) * e_start[1]
+e3 = A[2,:] / np.linalg.norm(A[2,:]) * e_start[2]
+e4 = A[3,:] / np.linalg.norm(A[3,:]) * e_start[3]
+E = np.array([e1, e2, e3, e4])
+
+Omega = Omega_start
+
+f1 = (np.cross(E[0,:], B[0,:]) + np.cross(W[0,:],np.cross(W[0,:], B[0,:])) + g_abs + np.cross(Omega, np.cross(W[0,:], B[0,:]))) * dot_masses[0]
+f2 = (np.cross(E[1,:], B[1,:]) + np.cross(W[1,:],np.cross(W[1,:], B[1,:])) + g_abs + np.cross(Omega, np.cross(W[1,:], B[1,:]))) * dot_masses[1]
+f3 = (np.cross(E[2,:], B[2,:]) + np.cross(W[2,:],np.cross(W[2,:], B[2,:])) + g_abs + np.cross(Omega, np.cross(W[2,:], B[2,:]))) * dot_masses[2]
+f4 = (np.cross(E[3,:], B[3,:]) + np.cross(W[3,:],np.cross(W[3,:], B[3,:])) + g_abs + np.cross(Omega, np.cross(W[3,:], B[3,:]))) * dot_masses[3]
+
+f_ball = g_abs * m_ball
+tangent_point = np.array([position[0], position[1], 0.0])
+
+F = np.array([f1, f2, f3, f4])
+Mo = np.cross(f1, tangent_point) + np.cross(f2, tangent_point) + np.cross(f3, tangent_point) + np.cross(f4, tangent_point) # Need to be corrected
+
+F_all = f1 + f2 + f3 + f4 + f_ball
+R = -np.dot(F_all, absolute_system[3,:])*absolute_system[3,:]
+F_act = F_all + R # Must be parallel to the plain
+
+dOmegadt = np.linalg.inv(J)*(Mo + np.dot(dJdt,Omega))
+
+Omega = Omega + dOmegadt*dt
+position = position + velocity*dt
+velocity = velocity + F_act * dt / (m_ball + dot_masses[0] + dot_masses[1] + dot_masses[2] + dot_masses[3])
 
 
