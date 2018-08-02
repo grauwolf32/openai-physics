@@ -42,7 +42,7 @@ J_ball[0][0] += m_ball*r_ball**2 / 4.0
 J_ball[1][1] += m_ball*r_ball**2 / 4.0
 
 alpha = np.arccos(-1.0/3.0)
-a1 = relative_system[2,:] / np.linalg.norm(relative_system[2,:]) * np.sqrt(1.0/8.0)
+a1 = relative_system[2,:] / np.linalg.norm(relative_system[2,:]) * np.sqrt(7.0/24.0)
 a2 = np.dot(rotate_vec(relative_system[0,:], alpha), a1)
 a3 = np.dot(rotate_vec(relative_system[2,:], 2.0/3.0*np.pi), a2)
 a4 = np.dot(rotate_vec(relative_system[2,:], 2.0/3.0*np.pi), a3)
@@ -68,9 +68,24 @@ b4 = np.dot(rotate_vec(A[3,:], phi_start[3]), b4)
 def drawSphere():
     glutSolidSphere(1.0,200,200)
 
+def drawCircle(radius_vec, omega ,center):
+    #glPushMatrix()
+
+    glBegin(GL_LINES)
+    c_last = radius_vec
+    for i in xrange(0, 100):
+        c = np.dot(rotate_vec(omega, 2.0*np.pi*i/(99)), radius_vec)
+        glVertex3fv(c_last+center)
+        glVertex3fv(c+center)
+        c_last = c
+
+    glEnd()
+    #glPopMatrix()
+
 def drawLines():
     global a1,a2,a3,a4
     global b1,b2,b3,b4
+
     glBegin(GL_LINES)
     glVertex3fv(np.array([0, 0, 0]))
     glVertex3fv(a1)
@@ -97,6 +112,11 @@ def drawLines():
     glVertex3fv(a4 + b4)
 
     glEnd()
+
+    drawCircle(b1, a1, a1)
+    drawCircle(b2, a2, a2)
+    drawCircle(b3, a3, a3)
+    drawCircle(b4, a4, a4)
 
 def main():
     pg.init()
@@ -125,7 +145,7 @@ def main():
         drawLines()
 
         pg.display.flip()
-        pg.time.wait(10)
+        pg.time.wait(30)
 
 if __name__ == "__main__":
     main()
