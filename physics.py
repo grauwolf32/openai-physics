@@ -113,4 +113,8 @@ Omega = Omega + dOmegadt*dt
 position = position + velocity*dt
 velocity = velocity + F_act * dt / (m_ball + dot_masses[0] + dot_masses[1] + dot_masses[2] + dot_masses[3])
 
+if np.dot(velocity, absolute_system[3,:]) < 0.0 and position[2] <= ball_radious + eps:
+    velocity = velocity - absolute_system[3,:]*np.dot(absolute_system[3,:], velocity)
+
+
 
