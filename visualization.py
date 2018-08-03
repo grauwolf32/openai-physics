@@ -69,8 +69,6 @@ def drawSphere():
     glutSolidSphere(1.0,200,200)
 
 def drawCircle(radius_vec, omega ,center):
-    #glPushMatrix()
-
     glBegin(GL_LINES)
     c_last = radius_vec
     for i in xrange(0, 100):
@@ -80,12 +78,12 @@ def drawCircle(radius_vec, omega ,center):
         c_last = c
 
     glEnd()
-    #glPopMatrix()
 
-def drawLines():
+def drawShape():
     global a1,a2,a3,a4
     global b1,b2,b3,b4
 
+    glColor3fv((1,0,0))
     glBegin(GL_LINES)
     glVertex3fv(np.array([0, 0, 0]))
     glVertex3fv(a1)
@@ -99,6 +97,7 @@ def drawLines():
     glVertex3fv(np.array([0, 0, 0]))
     glVertex3fv(a4)
 
+    glColor3fv((0,1,0))
     glVertex3fv(a1)
     glVertex3fv(a1 + b1)
 
@@ -113,12 +112,17 @@ def drawLines():
 
     glEnd()
 
+    glColor3fv((1,1,0))
     drawCircle(b1, a1, a1)
     drawCircle(b2, a2, a2)
     drawCircle(b3, a3, a3)
     drawCircle(b4, a4, a4)
 
-    #glutSolidSphere(tetra_len*np.sqrt(3.0/8.0),200,200)
+    glEnable(GL_BLEND)
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+    glColor4f(0, 0, 1, 0.3)
+    glutSolidSphere(tetra_len*np.sqrt(3.0/8.0),200,200)
+    glDisable(GL_BLEND)
 
 def main():
     pg.init()
@@ -126,7 +130,7 @@ def main():
     display = (800, 600)
     pg.display.set_mode(display, DOUBLEBUF|OPENGL)
 
-    gluPerspective(45, display[0]/display[1], 0.1, 50.0)
+    gluPerspective(45, display[0]/display[1], 0.1, 30.0)
     glTranslatef(0.0, 0.0, -5)
     glRotatef(0, 0, 0 ,0)
 
@@ -144,7 +148,7 @@ def main():
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
         glRotatef(1,3,1,1)
         #glEnable(GL_LIGHTING)
-        drawLines()
+        drawShape()
 
         pg.display.flip()
         pg.time.wait(30)
