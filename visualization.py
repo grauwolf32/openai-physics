@@ -42,7 +42,7 @@ J_ball[0][0] += m_ball*r_ball**2 / 4.0
 J_ball[1][1] += m_ball*r_ball**2 / 4.0
 
 alpha = np.arccos(-1.0/3.0)
-a1 = relative_system[2,:] / np.linalg.norm(relative_system[2,:]) * np.sqrt(7.0/24.0)
+a1 = relative_system[2,:] / np.linalg.norm(relative_system[2,:]) * np.sqrt(1.0/8.0)
 a2 = np.dot(rotate_vec(relative_system[0,:], alpha), a1)
 a3 = np.dot(rotate_vec(relative_system[2,:], 2.0/3.0*np.pi), a2)
 a4 = np.dot(rotate_vec(relative_system[2,:], 2.0/3.0*np.pi), a3)
@@ -54,10 +54,10 @@ b2 = np.cross(A[1,:], A[2,:])
 b3 = np.cross(A[2,:], A[3,:])
 b4 = np.cross(A[3,:], A[0,:])
 
-b1 = b1 / np.linalg.norm(b1) * tetra_len / np.sqrt(3)
-b2 = b2 / np.linalg.norm(b2) * tetra_len / np.sqrt(3)
-b3 = b3 / np.linalg.norm(b3) * tetra_len / np.sqrt(3)
-b4 = b4 / np.linalg.norm(b4) * tetra_len / np.sqrt(3)
+b1 = b1 / np.linalg.norm(b1) * tetra_len / 2.0
+b2 = b2 / np.linalg.norm(b2) * tetra_len / 2.0
+b3 = b3 / np.linalg.norm(b3) * tetra_len / 2.0
+b4 = b4 / np.linalg.norm(b4) * tetra_len / 2.0
 
 b1 = np.dot(rotate_vec(A[0,:], phi_start[0]), b1)
 b2 = np.dot(rotate_vec(A[1,:], phi_start[1]), b2)
@@ -117,6 +117,8 @@ def drawLines():
     drawCircle(b2, a2, a2)
     drawCircle(b3, a3, a3)
     drawCircle(b4, a4, a4)
+
+    #glutSolidSphere(tetra_len*np.sqrt(3.0/8.0),200,200)
 
 def main():
     pg.init()
