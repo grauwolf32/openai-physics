@@ -9,23 +9,7 @@ from OpenGL.GLUT import *
 
 import numpy as np
 
-
-
-def rotate_vec(omega, phi): # Rotate around omega matrix
-    R = np.eye(3)
-    omega = omega / np.linalg.norm(omega)
-
-    W = np.zeros((3,3))
-    W[0][1] = -omega[2]
-    W[0][2] =  omega[1]
-    W[1][2] = -omega[0]
-
-    W[1][0] = -W[0][1]
-    W[2][0] = -W[0][2]
-    W[2][1] = -W[1][2]
-
-    R = R + np.sin(phi)*W + (1.0-np.cos(phi))*np.dot(W,W)
-    return R
+from aux import rotate_vec
 
 phi_start = np.zeros(4)
 m_ball = 1.0
@@ -145,6 +129,7 @@ def main():
                     pg.quit()
                     quit()
 
+        glClearColor(1.0, 1.0, 1.0, 1.0) 
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
         glRotatef(1,3,1,1)
         #glEnable(GL_LIGHTING)
