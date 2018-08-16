@@ -43,6 +43,8 @@ r2 = A[1,:] + B[1,:]
 r3 = A[2,:] + B[2,:]
 r4 = A[3,:] + B[3,:]
 
+R = np.array([r1, r2, r3, r4])
+
 J = J_ball + (np.dot(r1,r1)*np.eye(3) - np.linalg.outer(r1,r1))* dot_masses[0] \ 
            + (np.dot(r2,r2)*np.eye(3) - np.linalg.outer(r2,r2))* dot_masses[1] \ 
            + (np.dot(r3,r3)*np.eye(3) - np.linalg.outer(r3,r3))* dot_masses[2] \
@@ -87,7 +89,11 @@ f_ball = g_abs * m_ball
 tangent_point = np.array([position[0], position[1], 0.0])
 
 F = np.array([f1, f2, f3, f4])
-Mo = np.cross(f1, tangent_point) + np.cross(f2, tangent_point) + np.cross(f3, tangent_point) + np.cross(f4, tangent_point) # Need to be corrected
+
+Mo = np.cross(F[0], R[0]-tangent_point) + \
+     np.cross(F[0], R[0]-tangent_point) + \
+     np.cross(F[0], R[0]-tangent_point) + \
+     np.cross(F[0], R[0]-tangent_point) 
 
 F_all = f1 + f2 + f3 + f4 + f_ball
 R = -np.dot(F_all, absolute_system[3,:])*absolute_system[3,:]
