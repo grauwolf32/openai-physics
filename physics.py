@@ -1,5 +1,8 @@
 import numpy as np 
 from aux import rotate_vec
+
+tetra_len = 1.0
+r_ball = tetra_len * np.sqrt(3.0/8.0)
     
 relative_system = np.eye(3)
 absolute_system = np.eye(3)
@@ -7,7 +10,11 @@ absolute_system = np.eye(3)
 position = start_position
 velocity = start_velocity
 
-g_abs = absolute_system[2, :] * 9.8
+ball_center = np.array([position[0], position[1], r_ball ])
+tangent_point = np.array([position[0], position[1], 0.0]) # point in common of the sphere and the plain
+gamma = ball_center - tangent_point # vector from tangent_point to the center of the sphere
+
+g_abs = absolute_system[2, :] * 9.8 # gravity force field vector
 
 J_ball = np.eye(3)*( 2.0/5.0 * m_ball**2)
 J_ball[0][0] += m_ball*r_ball**2 / 4.0
@@ -45,10 +52,10 @@ r4 = A[3,:] + B[3,:]
 
 R = np.array([r1, r2, r3, r4])
 
-J = J_ball + (np.dot(r1,r1)*np.eye(3) - np.linalg.outer(r1,r1))* dot_masses[0] \ 
-           + (np.dot(r2,r2)*np.eye(3) - np.linalg.outer(r2,r2))* dot_masses[1] \ 
-           + (np.dot(r3,r3)*np.eye(3) - np.linalg.outer(r3,r3))* dot_masses[2] \
-           + (np.dot(r4,r4)*np.eye(3) - np.linalg.outer(r4,r4))* dot_masses[3]
+J = J_ball + (np.dot(r1,r1)*np.eye(3) - np.linalg.outer(r1,r1)) * dot_masses[0] \ 
+           + (np.dot(r2,r2)*np.eye(3) - np.linalg.outer(r2,r2)) * dot_masses[1] \ 
+           + (np.dot(r3,r3)*np.eye(3) - np.linalg.outer(r3,r3)) * dot_masses[2] \
+           + (np.dot(r4,r4)*np.eye(3) - np.linalg.outer(r4,r4)) * dot_masses[3]
 
 w1 = A[0,:] / np.linalg.norm(A[0,:]) * w_start[0]
 w2 = A[1,:] / np.linalg.norm(A[1,:]) * w_start[1]
@@ -62,10 +69,10 @@ e3 = A[2,:] / np.linalg.norm(A[2,:]) * e_start[2]
 e4 = A[3,:] / np.linalg.norm(A[3,:]) * e_start[3]
 E = np.array([e1, e2, e3, e4])
 
-dr1 = np.cross(B[0,:], W[0,:]) # Give right formulas
-dr2 = np.cross(B[1,:], W[1,:]) #
-dr3 = np.cross(B[2,:], W[2,:]) #
-dr4 = np.cross(B[3,:], W[3,:]) #
+dr1 = np.cross(A[0] + gamma, Omega) + np.cross(B[0,:], W[0,:]) # Give right formulas
+dr2 = np.cross(A[1] + gamma, Omega) + np.cross(B[1,:], W[1,:]) #
+dr3 = np.cross(A[2] + gamma, Omega) + np.cross(B[2,:], W[2,:]) #
+dr4 = np.cross(A[3] + gamma, Omega) + np.cross(B[3,:], W[3,:]) #
 
 dJdt = (np.linalg.outer(dr1,r1) + np.linalg.outer(r1,dr1))* dot_masses[0] +\
        (np.linalg.outer(dr2,r2) + np.linalg.outer(r2,dr2))* dot_masses[1] +\ 
@@ -86,18 +93,16 @@ f3 = (np.cross(E[2,:], B[2,:]) + np.cross(W[2,:],np.cross(W[2,:], B[2,:])) + g_a
 f4 = (np.cross(E[3,:], B[3,:]) + np.cross(W[3,:],np.cross(W[3,:], B[3,:])) + g_abs + np.cross(Omega, np.cross(W[3,:], B[3,:]))) * dot_masses[3]
 
 f_ball = g_abs * m_ball
-tangent_point = np.array([position[0], position[1], 0.0])
-
 F = np.array([f1, f2, f3, f4])
 
 Mo = np.cross(F[0], R[0]-tangent_point) + \
-     np.cross(F[0], R[0]-tangent_point) + \
-     np.cross(F[0], R[0]-tangent_point) + \
-     np.cross(F[0], R[0]-tangent_point) 
+     np.cross(F[1], R[1]-tangent_point) + \
+     np.cross(F[2], R[2]-tangent_point) + \
+     np.cross(F[3], R[3]-tangent_point) 
 
 F_all = f1 + f2 + f3 + f4 + f_ball
-R = -np.dot(F_all, absolute_system[3,:])*absolute_system[3,:]
-F_act = F_all + R # Must be parallel to the plain
+React = -np.dot(F_all, absolute_system[3,:])*absolute_system[3,:]
+F_act = F_all + React # Must be parallel to the plain
 
 dOmegadt = np.linalg.inv(J)*(Mo + np.dot(dJdt,Omega))
 
@@ -107,6 +112,3 @@ velocity = velocity + F_act * dt / (m_ball + dot_masses[0] + dot_masses[1] + dot
 
 if np.dot(velocity, absolute_system[3,:]) < 0.0 and position[2] <= ball_radious + eps:
     velocity = velocity - absolute_system[3,:]*np.dot(absolute_system[3,:], velocity)
-
-
-
