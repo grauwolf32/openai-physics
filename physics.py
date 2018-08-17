@@ -1,6 +1,7 @@
 import numpy as np 
 from aux import rotate_vec
 
+# Test
 tetra_len = 1.0
 r_ball = tetra_len * np.sqrt(3.0/8.0)
     
