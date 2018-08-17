@@ -104,13 +104,20 @@ if np.dot(velocity, absolute_system[3,:]) < 0.0 and position[2] <= ball_radious 
     velocity = velocity - absolute_system[3,:]*np.dot(absolute_system[3,:], velocity)
 
 Omega_Rot = omega_matrix(Omega)
-U = np.dot(U, Omega_Rot)
-A = np.dot(U, np.diag([np.sqrt(1.0/8.0)]*4))
+U = U + np.dot(U, Omega_Rot)*dt
+A = A + np.dot(U, np.diag([np.sqrt(1.0/8.0)]*4))*dt
+
+B[0] = B[0] + np.dot(np.cross(B[0],W[0])*dt, Omega_Rot)
+B[1] = B[1] + np.dot(np.cross(B[1],W[1])*dt, Omega_Rot)
+B[2] = B[2] + np.dot(np.cross(B[2],W[2])*dt, Omega_Rot)
+B[3] = B[3] + np.dot(np.cross(B[3],W[3])*dt, Omega_Rot)
+R = A + B
 
 w_abs  = w_abs + e_abs * dt
 W = np.dot(U, np.diag(w_abs))
 E = np.dot(U, np.diag(e_abs))
 e_abs = controller() # input from controller
+
 
 
 
