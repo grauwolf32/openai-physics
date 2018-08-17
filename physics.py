@@ -95,10 +95,10 @@ f4 = (np.cross(E[3,:], B[3,:]) + np.cross(W[3,:],np.cross(W[3,:], B[3,:])) + g_a
 f_ball = g_abs * m_ball
 F = np.array([f1, f2, f3, f4])
 
-Mo = np.cross(F[0], R[0]-tangent_point) + \
-     np.cross(F[1], R[1]-tangent_point) + \
-     np.cross(F[2], R[2]-tangent_point) + \
-     np.cross(F[3], R[3]-tangent_point) 
+Mo = np.cross(R[0]-tangent_point, F[0]) + \
+     np.cross(R[1]-tangent_point, F[1]) + \
+     np.cross(R[2]-tangent_point, F[2]) + \
+     np.cross(R[3]-tangent_point, F[3]) # Gravity force of the ball made no moment aganist tangent point
 
 F_all = f1 + f2 + f3 + f4 + f_ball
 React = -np.dot(F_all, absolute_system[3,:])*absolute_system[3,:]
@@ -108,7 +108,7 @@ dOmegadt = np.linalg.inv(J)*(Mo + np.dot(dJdt,Omega))
 
 Omega = Omega + dOmegadt*dt
 position = position + velocity*dt
-velocity = velocity + F_act * dt / (m_ball + dot_masses[0] + dot_masses[1] + dot_masses[2] + dot_masses[3])
+velocity = velocity + F_act * dt / (m_ball + np.sum(dot_masses))
 
 if np.dot(velocity, absolute_system[3,:]) < 0.0 and position[2] <= ball_radious + eps:
     velocity = velocity - absolute_system[3,:]*np.dot(absolute_system[3,:], velocity)
