@@ -15,3 +15,36 @@ def rotate_vec(omega, phi): # Rotate around omega matrix
 
     R = R + np.sin(phi)*W + (1.0-np.cos(phi))*np.dot(W,W)
     return R
+
+def get_J_inertion(R, dot_masses):
+    n = dot_masses.shape[0]
+    J = np.zeros(R.shape[1], R.shape[1])
+
+    for i in xrange(0, n):
+       J += (np.dot(R[i],R[i])*np.eye(3) - np.linalg.outer(R[i],R[i])) * dot_masses[i]
+    return J
+
+def get_dJdt(R, dR, dot_masses):
+    n = dot_masses.shape[0]
+    dJdt = np.zeros(R.shape[1], R.shape[1])
+    
+    for i in xrange(0, n):
+       dJdt += (np.diag([2.0*np.dot(R[i],dR[i])]*3) - np.linalg.outer(dR[i],R[i]) - np.linalg.outer(R[i],dR[i])) * dot_masses[i]
+    return dJdt
+
+def get_dR(A, B, W, Omega, gamma):
+    n  = A.shape[0]
+    dR = list()
+    
+    for i in xrange(0, n):
+        dR.append(np.cross(Omega, A[i] + gamma) + np.cross(Omega + W[i,:], B[i,:]))
+    return np.array(dR)
+
+def get_F(B, E, W, Omega, g_abs, dot_masses):
+    n  = B.shape[0]
+    F = list()
+    
+    for i in xrange(0, n):
+        f = (np.cross(E[i,:], B[i,:]) + np.cross(W[i,:], np.cross(W[i,:], B[i,:])) + g_abs + np.cross(Omega, np.cross(W[i,:], B[i,:]))) * dot_masses[i]
+        F.append(f)
+    return np.array(F)
