@@ -1,5 +1,5 @@
 import numpy as np 
-from aux import rotate_vec, get_J_inertion
+from aux import *
 
 tetra_len = 1.0
 r_ball = tetra_len * np.sqrt(3.0/8.0)
@@ -71,11 +71,11 @@ Mo =  np.sum([np.cross(R[i], F[i]) for i in xrange(0, R.shape[0])])
 
 F_all = np.sum(F, axis=0) + f_ball
 React = -np.dot(F_all, absolute_system[3,:])*absolute_system[3,:]
-F_act = F_all + React # Must be parallel to the plain
 
 dOmegadt = np.linalg.inv(J)*(Mo + np.dot(dJdt, Omega))
 
 while t < T:
+    F_act = F_all + React
     Omega = Omega + dOmegadt*dt
     position = position + velocity*dt
     velocity = velocity + F_act * dt / Massess
@@ -87,7 +87,6 @@ while t < T:
         velocity = velocity - absolute_system[3,:]*np.dot(absolute_system[3,:], velocity)
 
     Omega_Rot = omega_matrix(Omega)
-
     U = U + np.dot(U, Omega_Rot)*dt
     A = A + np.dot(U, np.diag([np.sqrt(1.0/8.0)]*4))*dt
 
@@ -108,11 +107,10 @@ while t < T:
     dJdt = get_dJdt(R, dR, dot_masses)
 
     F = get_F(B, E, W, Omega, g_abs, dot_masses)
-    Mo =  np.sum([np.cross(R[i], F[i]) for i in xrange(0, R.shape[0])])
-
     F_all = np.sum(F, axis=0) + f_ball
+
+    Mo =  np.sum([np.cross(R[i], F[i]) for i in xrange(0, R.shape[0])])
     React = -np.dot(F_all, absolute_system[3,:])*absolute_system[3,:]
-    F_act = F_all + React 
 
     dOmegadt = np.linalg.inv(J)*(Mo + np.dot(dJdt,Omega))
     t += dt
