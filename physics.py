@@ -7,12 +7,11 @@ r_ball = tetra_len * np.sqrt(3.0/8.0)
 relative_system = np.eye(3)
 absolute_system = np.eye(3)
 
-position = start_position
+position = start_position # position of center of the ball
 velocity = start_velocity
 
-ball_center = np.array([position[0], position[1], r_ball ])
 tangent_point = np.array([position[0], position[1], 0.0]) # point in common of the sphere and the plain
-gamma = ball_center - tangent_point # vector from tangent_point to the center of the sphere
+gamma = position - tangent_point # vector from tangent_point to the center of the sphere
 
 g_abs = absolute_system[2, :] * 9.8 # gravity force field vector
 w_abs = w_start # absolute values of angular velocity and
@@ -90,36 +89,54 @@ Mo = np.cross(R[0]-tangent_point, F[0]) + \
      np.cross(R[3]-tangent_point, F[3]) 
      # Gravity force of the ball made no moment aganist tangent point
 
-F_all = f1 + f2 + f3 + f4 + f_ball
+F_all = np.sum(F, axis=0) + f_ball
 React = -np.dot(F_all, absolute_system[3,:])*absolute_system[3,:]
 F_act = F_all + React # Must be parallel to the plain
 
 dOmegadt = np.linalg.inv(J)*(Mo + np.dot(dJdt,Omega))
 
-Omega = Omega + dOmegadt*dt
-position = position + velocity*dt
-velocity = velocity + F_act * dt / (m_ball + np.sum(dot_masses))
+while t < T:
+    Omega = Omega + dOmegadt*dt
+    position = position + velocity*dt
+    velocity = velocity + F_act * dt / (m_ball + np.sum(dot_masses))
 
-if np.dot(velocity, absolute_system[3,:]) < 0.0 and position[2] <= ball_radious + eps: # Enforce correction of the velocity
-    velocity = velocity - absolute_system[3,:]*np.dot(absolute_system[3,:], velocity)
+    tangent_point = np.array([position[0], position[1], 0.0]) # point in common of the sphere and the plain
+    gamma = position - tangent_point
+ 
+    if np.dot(velocity, absolute_system[3,:]) < 0.0 and position[2] <= ball_radious + eps: # Enforce correction of the velocity
+        velocity = velocity - absolute_system[3,:]*np.dot(absolute_system[3,:], velocity)
 
-Omega_Rot = omega_matrix(Omega)
-U = U + np.dot(U, Omega_Rot)*dt
-A = A + np.dot(U, np.diag([np.sqrt(1.0/8.0)]*4))*dt
+    Omega_Rot = omega_matrix(Omega)
+    U = U + np.dot(U, Omega_Rot)*dt
+    A = A + np.dot(U, np.diag([np.sqrt(1.0/8.0)]*4))*dt
 
-B[0] = B[0] + np.dot(np.cross(B[0],W[0])*dt, Omega_Rot)
-B[1] = B[1] + np.dot(np.cross(B[1],W[1])*dt, Omega_Rot)
-B[2] = B[2] + np.dot(np.cross(B[2],W[2])*dt, Omega_Rot)
-B[3] = B[3] + np.dot(np.cross(B[3],W[3])*dt, Omega_Rot)
-R = A + B
+    B[0] = B[0] + np.dot(np.cross(B[0],W[0])*dt, Omega_Rot)
+    B[1] = B[1] + np.dot(np.cross(B[1],W[1])*dt, Omega_Rot)
+    B[2] = B[2] + np.dot(np.cross(B[2],W[2])*dt, Omega_Rot)
+    B[3] = B[3] + np.dot(np.cross(B[3],W[3])*dt, Omega_Rot)
+    R = A + B
 
-w_abs  = w_abs + e_abs * dt
-W = np.dot(U, np.diag(w_abs))
-E = np.dot(U, np.diag(e_abs))
-e_abs = controller() # input from controller
+    w_abs  = w_abs + e_abs * dt
+    W = np.dot(U, np.diag(w_abs))
+    E = np.dot(U, np.diag(e_abs))
+    e_abs = controller() # input from controller
 
+    f1 = (np.cross(E[0,:], B[0,:]) + np.cross(W[0,:],np.cross(W[0,:], B[0,:])) + g_abs + np.cross(Omega, np.cross(W[0,:], B[0,:]))) * dot_masses[0]
+    f2 = (np.cross(E[1,:], B[1,:]) + np.cross(W[1,:],np.cross(W[1,:], B[1,:])) + g_abs + np.cross(Omega, np.cross(W[1,:], B[1,:]))) * dot_masses[1]
+    f3 = (np.cross(E[2,:], B[2,:]) + np.cross(W[2,:],np.cross(W[2,:], B[2,:])) + g_abs + np.cross(Omega, np.cross(W[2,:], B[2,:]))) * dot_masses[2]
+    f4 = (np.cross(E[3,:], B[3,:]) + np.cross(W[3,:],np.cross(W[3,:], B[3,:])) + g_abs + np.cross(Omega, np.cross(W[3,:], B[3,:]))) * dot_masses[3]
 
+    f_ball = g_abs * m_ball
+    F = np.array([f1, f2, f3, f4])
 
+    Mo = np.cross(R[0]-tangent_point, F[0]) + \
+         np.cross(R[1]-tangent_point, F[1]) + \
+         np.cross(R[2]-tangent_point, F[2]) + \
+         np.cross(R[3]-tangent_point, F[3]) 
 
+    F_all = np.sum(F, axis=0) + f_ball
+    React = -np.dot(F_all, absolute_system[3,:])*absolute_system[3,:]
+    F_act = F_all + React 
 
+    t += dt
 
