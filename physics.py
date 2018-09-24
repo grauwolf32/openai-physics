@@ -1,9 +1,60 @@
 import numpy as np 
 from aux import *
 
-tetra_len = 1.0
-r_ball = tetra_len * np.sqrt(3.0/8.0)
-Massess = (m_ball + np.sum(dot_masses))
+
+class SolidBody(object):
+    def __init__(self, mass, angular_velocity, )
+
+class HyroSphere(object):
+    def __init__(self, t_len, mass, dot_masses, position, omega_start=np.zeros(3), ksi_start=np.zeros(3)):
+        self.radius = t_len * np.sqrt(3.0/8.0)
+        self.relative_system = np.eye(3) 
+        
+        self.mass = mass
+        self.dot_masses = dot_masses
+        self.position = position # Position of center of the ball
+
+        u1 = relative_system[2,:] / np.linalg.norm(relative_system[2,:]) 
+        u2 = np.dot(rotate_vec(relative_system[0,:], np.arccos(-1.0/3.0)), u1)
+        u3 = np.dot(rotate_vec(relative_system[2,:], 2.0/3.0*np.pi), u2)
+        u4 = np.dot(rotate_vec(relative_system[2,:], 2.0/3.0*np.pi), u3)
+
+        u1 = u1 / np.linalg.norm(u1)
+        u2 = u2 / np.linalg.norm(u2)
+        u3 = u3 / np.linalg.norm(u3)
+        u4 = u4 / np.linalg.norm(u4)
+
+        self.U = np.array([u1, u2, u3, u4])
+        self.A = np.dot(self.U, np.diag([np.sqrt(1.0/8.0)]*4))
+
+        b1 = np.cross(self.A[0,:], self.A[1,:])
+        b2 = np.cross(self.A[1,:], self.A[2,:])
+        b3 = np.cross(self.A[2,:], self.A[3,:])
+        b4 = np.cross(self.A[3,:], self.A[0,:])
+
+        b1 = b1 / np.linalg.norm(b1) * tetra_len / 2.0
+        b2 = b2 / np.linalg.norm(b2) * tetra_len / 2.0
+        b3 = b3 / np.linalg.norm(b3) * tetra_len / 2.0
+        b4 = b4 / np.linalg.norm(b4) * tetra_len / 2.0
+
+        b1 = np.dot(rotate_vec(self.A[0,:], phi_start[0]), b1)
+        b2 = np.dot(rotate_vec(self.A[1,:], phi_start[1]), b2)
+        b3 = np.dot(rotate_vec(self.A[2,:], phi_start[2]), b3)
+        b4 = np.dot(rotate_vec(self.A[3,:], phi_start[3]), b4)
+
+        self.B = np.array([b1, b2, b3, b4])
+
+        self.ksi = ksi_start
+        self.omega = omega_start
+
+        self.J = np.eye(3)*( 2.0/5.0 * self.mass**2)
+        self.J[0][0] += self.mass*self.radius**2 / 4.0
+        self.J[1][1] += self.mass*self.radius**2 / 4.0
+       
+
+#tetra_len = 1.0
+#r_ball = tetra_len * np.sqrt(3.0/8.0)
+#Massess = (m_ball + np.sum(dot_masses))
     
 absolute_system = np.eye(3)
 
@@ -17,40 +68,40 @@ g_abs = absolute_system[2, :] * 9.8                       # gravity force field 
 w_abs = w_start                                           # absolute values of angular velocity and
 e_abs = e_start                                           # angular acceleration
 
-J_ball = np.eye(3)*( 2.0/5.0 * m_ball**2)
-J_ball[0][0] += m_ball*r_ball**2 / 4.0
-J_ball[1][1] += m_ball*r_ball**2 / 4.0
+#J_ball = np.eye(3)*( 2.0/5.0 * m_ball**2)
+#J_ball[0][0] += m_ball*r_ball**2 / 4.0
+#J_ball[1][1] += m_ball*r_ball**2 / 4.0
 
-alpha  = np.arccos(-1.0/3.0)
-length = np.sqrt(1.0/8.0)
+#alpha  = np.arccos(-1.0/3.0)
+#length = np.sqrt(1.0/8.0)
 
-u1 = relative_system[2,:] / np.linalg.norm(relative_system[2,:]) 
-u2 = np.dot(rotate_vec(relative_system[0,:], alpha), a1)
-u3 = np.dot(rotate_vec(relative_system[2,:], 2.0/3.0*np.pi), a2)
-u4 = np.dot(rotate_vec(relative_system[2,:], 2.0/3.0*np.pi), a3)
+#u1 = relative_system[2,:] / np.linalg.norm(relative_system[2,:]) 
+#u2 = np.dot(rotate_vec(relative_system[0,:], alpha), a1)
+#u3 = np.dot(rotate_vec(relative_system[2,:], 2.0/3.0*np.pi), a2)
+#u4 = np.dot(rotate_vec(relative_system[2,:], 2.0/3.0*np.pi), a3)
 
-u1 = u1 / np.linalg.norm(u1)
-u2 = u2 / np.linalg.norm(u2)
-u3 = u3 / np.linalg.norm(u3)
-u4 = u4 / np.linalg.norm(u4)
+#u1 = u1 / np.linalg.norm(u1)
+#u2 = u2 / np.linalg.norm(u2)
+#u3 = u3 / np.linalg.norm(u3)
+#u4 = u4 / np.linalg.norm(u4)
 
-U = np.array([u1, u2, u3, u4])
-A = np.dot(U, np.diag([np.sqrt(1.0/8.0)]*4))
+#U = np.array([u1, u2, u3, u4])
+#A = np.dot(U, np.diag([np.sqrt(1.0/8.0)]*4))
 
-b1 = np.cross(A[0,:], A[1,:])
-b2 = np.cross(A[1,:], A[2,:])
-b3 = np.cross(A[2,:], A[3,:])
-b4 = np.cross(A[3,:], A[0,:])
+#b1 = np.cross(A[0,:], A[1,:])
+#b2 = np.cross(A[1,:], A[2,:])
+#b3 = np.cross(A[2,:], A[3,:])
+#b4 = np.cross(A[3,:], A[0,:])
 
-b1 = b1 / np.linalg.norm(b1) * tetra_len / 2.0
-b2 = b2 / np.linalg.norm(b2) * tetra_len / 2.0
-b3 = b3 / np.linalg.norm(b3) * tetra_len / 2.0
-b4 = b4 / np.linalg.norm(b4) * tetra_len / 2.0
+#b1 = b1 / np.linalg.norm(b1) * tetra_len / 2.0
+#b2 = b2 / np.linalg.norm(b2) * tetra_len / 2.0
+#b3 = b3 / np.linalg.norm(b3) * tetra_len / 2.0
+#b4 = b4 / np.linalg.norm(b4) * tetra_len / 2.0
 
-b1 = np.dot(rotate_vec(A[0,:], phi_start[0]), b1)
-b2 = np.dot(rotate_vec(A[1,:], phi_start[1]), b2)
-b3 = np.dot(rotate_vec(A[2,:], phi_start[2]), b3)
-b4 = np.dot(rotate_vec(A[3,:], phi_start[3]), b4)
+#b1 = np.dot(rotate_vec(A[0,:], phi_start[0]), b1)
+#b2 = np.dot(rotate_vec(A[1,:], phi_start[1]), b2)
+#b3 = np.dot(rotate_vec(A[2,:], phi_start[2]), b3)
+#b4 = np.dot(rotate_vec(A[3,:], phi_start[3]), b4)
 
 B = np.array([b1, b2, b3, b4])
 R = A + B + np.array([gamma]*4)
