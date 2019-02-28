@@ -79,14 +79,17 @@ class HyroSphere(object):
         mass_center = np.sum(np.dot(R, np.diag(self.dot_masses)), axis=0) / total_mass
 
         plane_normal = np.asarray([0, 0, 1.0])
-        force_proj = np.dot(F_all, plane_normal)
 
-        if force_proj < 0.0:
-            dvcdt = F_all - force_proj*plane_normal
-        else:
-            dvcdt = F_all
-        #### Error! Wrong acceleration: velocity must be increased of ball center accel, not the center mass accel
-        
+        dvcdt = F_all/total_mass # Get acceleration of center of the ball from center of mass acceleration
+        dvcdt -= np.cross(self.dOmegadt, mass_center) 
+        dvcdt -= np.cross(self.Omega, np.cross(self.Omega, mass_center))
+
+        dvcdt -= np.cross(self.Omega, np.cross(self.Omega, mass_center))
+        dvcdt_proj = np.dot(F_all, plane_normal)
+
+        if dvcdt_proj < 0.0:
+            dvcdt = dvcdt - dvcdt_proj*plane_normal
+
         self.velocity += dvcdt * dt
         vc_proj = np.dot(self.velocity, plane_normal)
         if vc_proj < 0.0 and self.position[-1] <= self.radius + 10e-3:
