@@ -24,22 +24,6 @@ def get_J_inertion(R, dot_masses):
        J += (np.dot(R[i],R[i])*np.eye(3) - np.linalg.outer(R[i],R[i])) * dot_masses[i]
     return J
 
-def get_dJdt(R, dR, dot_masses):
-    n = dot_masses.shape[0]
-    dJdt = np.zeros(R.shape[1], R.shape[1])
-    
-    for i in xrange(0, n):
-       dJdt += (np.diag([2.0*np.dot(R[i],dR[i])]*3) - np.linalg.outer(dR[i],R[i]) - np.linalg.outer(R[i],dR[i])) * dot_masses[i]
-    return dJdt
-
-def get_dR(A, B, W, Omega, gamma):
-    n  = A.shape[0]
-    dR = list()
-    
-    for i in xrange(0, n):
-        dR.append(np.cross(Omega, A[i] + gamma) + np.cross(Omega + W[i,:], B[i,:]))
-    return np.array(dR)
-
 def get_F(B, E, W, Omega, g_abs, dot_masses):
     n  = B.shape[0]
     F = list()

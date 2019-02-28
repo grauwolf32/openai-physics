@@ -1,7 +1,6 @@
 import numpy as np 
 from aux import *
 
-
 class SolidBody(object):
     def __init__(self, mass, angular_velocity, )
 
@@ -13,7 +12,13 @@ class HyroSphere(object):
         self.mass = mass
         self.dot_masses = dot_masses
         self.position = position # Position of center of the ball
-        self.phi = phi_start
+        self.velocity = np.zeros(3)
+        self.phi = phi_start # absolute values of angular speed
+        
+        self.ksi = ksi_start     # absolute values of angular acceleration
+        self.omega = omega_start # and angular velocity for dot masses
+        self.Omega = Omega_start
+        self.dOmegadt = np.zeros(3)
 
         u1 = relative_system[2,:] / np.linalg.norm(relative_system[2,:]) 
         u2 = np.dot(rotate_vec(relative_system[0,:], np.arccos(-1.0/3.0)), u1)
@@ -27,13 +32,8 @@ class HyroSphere(object):
 
         self.U = np.array([u1, u2, u3, u4])
 
-        self.ksi = ksi_start     # absolute values of angular acceleration
-        self.omega = omega_start # and angular velocity for dot masses
-        self.Omega = Omega_start
-
         self.J_ball = np.eye(3)*( 2.0/5.0 * self.mass**2)
-        self.J_ball[0][0] += self.mass*self.radius**2 / 4.0
-        self.J_ball[1][1] += self.mass*self.radius**2 / 4.0
+        self.J_ball[1][1] += self.mass*self.radius**2  # OS has coordinates (0, 0, -r)
 
     def move(self, dt, ksi_new, tangent_point):
         gamma = position - tangent_point 
@@ -55,30 +55,130 @@ class HyroSphere(object):
         b4 = np.dot(rotate_vec(self.U[3,:], self.phi[3]), b4)
 
         B = np.array([b1, b2, b3, b4])
-        R = self.A + self.B + np.array([gamma]*4)
-        J = self.J_ball + get_J_inertion(R, self.dot_masses)
+        R = self.A + self.B 
 
+        J = self.J_ball + get_J_inertion(R, self.dot_masses)
         W = np.dot(self.U, np.diag(self.omega))
         E = np.dot(self.U, np.diag(self.ksi))
-        
-        dR = get_dR(A, B, W, self.Omega, gamma)
+       
+        dRdt = get_dRdt(R, U, W, self.Omega)
         dJdt = get_dJdt(R, dR, self.dot_masses)
+        
+        d2Rdt2 = get_d2Rdt2(R, dRdt, U, self.Omega, self.dOmegadt, E)
+        F = get_F(d2Rdt2, 9.8, self.mass, self.dot_masses)
 
-        F = get_F(self.B, E, W, self.Omega, g_abs, self.dot_masses)
-        f_ball = g_abs * m_ball
-
-        Mo =  np.sum([np.cross(R[i], F[i]) for i in xrange(0, R.shape[0])]) 
+        Ms =  get_Ms(R, F, self.radious)
         # Gravity force of the ball made no moment aganist tangent point
 
-        F_all = np.sum(F, axis=0) + f_ball
-        React = -np.dot(F_all, absolute_system[3,:])*absolute_system[3,:]
+        F_all  = np.sum(F, axis=0)
+        Ms_all = np.sum(Ms, axis=0)
 
-        dOmegadt = np.linalg.inv(J)*(Mo + np.dot(dJdt, Omega))
+        self.dOmegadt = np.linalg.inv(J)*(Ms_all + np.dot(dJdt, self.Omega))
 
-        self.phi = self.phi + self.omega*dt
+        total_mass  = np.sum(self.dot_masses) + self.mass
+        mass_center = np.sum(np.dot(R, np.diag(self.dot_masses)), axis=0) / total_mass
+
+        plane_normal = np.asarray([0, 0, 1.0])
+        force_proj = np.dot(F_all, plane_normal)
+
+        if force_proj < 0.0:
+            dvcdt = F_all - force_proj*plane_normal
+        else:
+            dvcdt = F_all
+        #### Error! Wrong acceleration: velocity must be increased of ball center accel, not the center mass accel
+        
+        self.velocity += dvcdt * dt
+        vc_proj = np.dot(self.velocity, plane_normal)
+        if vc_proj < 0.0 and self.position[-1] <= self.radius + 10e-3:
+            self.velocity = self.velocity - vc_proj*plane_normal
+
+        self.position += self.velocity * dt
+        self.phi = self.phi + self.Omega * dt
+        self.Omega += self.dOmegadt
         self.ksi = ksi_new
 
-       
+def get_dRdt(R, U, W, Omega):
+    n = R.shape[0]
+    G = []
+    for i in range(0, n):
+        tmp = np.cross(R[i,:], U[i,:])
+        tmp = tmp / np.linalg.norm(tmp)
+        G.append(tmp)
+    G = np.asarray(G)
+
+    OmegaAbs =  W + np.asarray([Omega]*n)
+    dRdt = []
+
+    for i in range(0, n):
+        tmp = np.cross(OmegaAbs[i,:], R[i,:])
+        proj = np.dot(tmp, G[i,:])*G[i,:]
+        dRdt.append(proj)
+
+    dRdt = np.asarray(dRdt)
+    return dRdt
+
+def get_dJdt(R, dRdt, Omega, r, masses):
+    n = R.shape[0]
+    os_vec = np.asarray([0.0, 0.0, -r])
+    dosdt  = np.cross(Omega, os_vec)
+
+    dJdt = 2.0*np.diag(masses)*np.diag(os_vec)*np.diag(dosdt)
+
+    for in range(0, n):
+        dJdt -= (np.linalg.outer(R[i,:], dRdt[i,:]) + np.linal.gouter(dRdt[i,:], R[i,:])) * masses[i]
+
+    return dJdt
+
+def get_d2Rdt2(R, dRdt, U, Omega, dOmegadt, E):
+    n = R.shape[0]
+    OmegaAbs =  W + np.asarray([Omega]*n)
+
+    G = []
+    for i in range(0, n):
+        tmp = np.cross(R[i,:], U[i,:])
+        tmp = tmp / np.linalg.norm(tmp)
+        G.append(tmp)
+    G = np.asarray(G)
+
+    d2Rdt2 = []
+    for i in range(0, n):
+        tmp = np.cross(OmegaAbs[i,:], R[i,:])
+        tmp = np.cross(OmegaAbs[i,:], tmp)
+        tmp = tmp + dOmegadt + E[i,:]
+
+        accel  = np.dot(tmp, G[i,:])*G[i,:]
+
+        t_vec = R[i,:] - U[i,:] 
+        t_vec = t_vec / np.linalg.norm(t_vec)
+
+        accel += -np.dot(dRdt[i,:], dRdt[i,:]) * t_vec
+        d2Rdt2.append(accel)
+    return d2Rdt2
+
+def get_F(d2Rdt2, g, ball_mass, masses):
+    d2Rdt2 = np.asarray(d2Rdt2)
+    n = d2Rdt2.shape[0]
+
+    d2Rdt2 += np.asarray([[0.0, 0.0, -g]] * n)
+    d2Rdt2 = np.dot(d2Rdt2, np.diag(masses))
+
+    ball_gravity = ball_mass * [0.0, 0.0, -g]
+    F = np.append(d2Rdt2, [ball_gravity], axis=0)
+    return F
+
+def get_Ms(R, F, radious, ball_center):
+    n = R.shape[0]
+    Rs = R + np.asarray([[0, 0, -radious]]*n)
+
+    Ms = []
+    for i in range(0, n):
+        tmp = np.cross(R[i,:], F[i,:])
+
+    sc_vec = [0, 0, -radious]
+    Ms.append(np.cross(sc_vec, F[-1, :])) # Gravity made no torque
+
+    return Ms
+
 
 #tetra_len = 1.0
 #r_ball = tetra_len * np.sqrt(3.0/8.0)
