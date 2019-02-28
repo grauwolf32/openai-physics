@@ -126,6 +126,7 @@ def main():
 
     while True:
         b1 += 0.05*np.cross(a1, b1)
+        b1 = (b1 / np.linalg.norm(b1)) *  tetra_len / 2.0
 
         for event in pg.event.get():
             if event == pg.QUIT: 

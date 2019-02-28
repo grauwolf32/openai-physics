@@ -1,26 +1,26 @@
 import numpy as np 
-from aux import *
 
 class HyroSphere(object):
-    def __init__(self, t_len, mass, dot_masses, position, phi_start=np.zeros(3), omega_start=np.zeros(3), ksi_start=np.zeros(3), Omega_start=np.zeros(3)):
+    def __init__(self, t_len, mass, dot_masses, position, phi_start=np.zeros(4), omega_start=np.zeros(4), ksi_start=np.zeros(4), Omega_start=np.zeros(3)):
         self.radius = t_len * np.sqrt(3.0/8.0)
+        self.t_len = t_len
         self.relative_system = np.eye(3) 
         
         self.mass = mass
-        self.dot_masses = dot_masses
-        self.position = position # Position of center of the ball
+        self.dot_masses = np.asarray(dot_masses)
+        self.position = np.asarray(position) # Position of center of the ball
         self.velocity = np.zeros(3)
-        self.phi = phi_start # absolute values of angular speed
+        self.phi = np.asarray(phi_start)     # absolute values of angular speed
         
-        self.ksi = ksi_start     # absolute values of angular acceleration
-        self.omega = omega_start # and angular velocity for dot masses
-        self.Omega = Omega_start
+        self.ksi = np.asarray(ksi_start)     # absolute values of angular acceleration
+        self.omega = np.asarray(omega_start) # and angular velocity for dot masses
+        self.Omega = np.asarray(Omega_start)
         self.dOmegadt = np.zeros(3)
 
-        u1 = relative_system[2,:] / np.linalg.norm(relative_system[2,:]) 
-        u2 = np.dot(rotate_vec(relative_system[0,:], np.arccos(-1.0/3.0)), u1)
-        u3 = np.dot(rotate_vec(relative_system[2,:], 2.0/3.0*np.pi), u2)
-        u4 = np.dot(rotate_vec(relative_system[2,:], 2.0/3.0*np.pi), u3)
+        u1 = self.relative_system[2,:] / np.linalg.norm(self.relative_system[2,:]) 
+        u2 = np.dot(rotate_vec(self.relative_system[0,:], np.arccos(-1.0/3.0)), u1)
+        u3 = np.dot(rotate_vec(self.relative_system[2,:], 2.0/3.0*np.pi), u2)
+        u4 = np.dot(rotate_vec(self.relative_system[2,:], 2.0/3.0*np.pi), u3)
 
         u1 = u1 / np.linalg.norm(u1)
         u2 = u2 / np.linalg.norm(u2)
@@ -32,8 +32,7 @@ class HyroSphere(object):
         self.J_ball = np.eye(3)*( 2.0/5.0 * self.mass**2)
         self.J_ball[1][1] += self.mass*self.radius**2  # OS has coordinates (0, 0, -r)
 
-    def move(self, dt, ksi_new, tangent_point):
-        gamma = position - tangent_point 
+    def move(self, dt, ksi_new):
         A = self.U * np.sqrt(1.0/8.0)
 
         b1 = np.cross(A[0,:], A[1,:])
@@ -41,10 +40,10 @@ class HyroSphere(object):
         b3 = np.cross(A[2,:], A[3,:])
         b4 = np.cross(A[3,:], A[0,:])
 
-        b1 = b1 / np.linalg.norm(b1) * t_len / 2.0
-        b2 = b2 / np.linalg.norm(b2) * t_len / 2.0
-        b3 = b3 / np.linalg.norm(b3) * t_len / 2.0
-        b4 = b4 / np.linalg.norm(b4) * t_len / 2.0
+        b1 = b1 / np.linalg.norm(b1) * self.t_len / 2.0
+        b2 = b2 / np.linalg.norm(b2) * self.t_len / 2.0
+        b3 = b3 / np.linalg.norm(b3) * self.t_len / 2.0
+        b4 = b4 / np.linalg.norm(b4) * self.t_len / 2.0
 
         b1 = np.dot(rotate_vec(self.U[0,:], self.phi[0]), b1)
         b2 = np.dot(rotate_vec(self.U[1,:], self.phi[1]), b2)
@@ -52,35 +51,38 @@ class HyroSphere(object):
         b4 = np.dot(rotate_vec(self.U[3,:], self.phi[3]), b4)
 
         B = np.array([b1, b2, b3, b4])
-        R = self.A + self.B 
+        R = A + B 
 
-        J = self.J_ball + get_J_inertion(R, self.dot_masses)
-        W = np.dot(self.U, np.diag(self.omega))
-        E = np.dot(self.U, np.diag(self.ksi))
+        J = get_Js(self.J_ball, R, self.dot_masses)
+        W = np.dot(np.diag(self.omega), self.U)
+        E = np.dot(np.diag(self.ksi), self.U)
        
-        dRdt = get_dRdt(R, U, W, self.Omega)
-        dJdt = get_dJdt(R, dR, self.dot_masses)
+        dRdt = get_dRdt(R, self.U, W, self.Omega)
+        dJdt = get_dJdt(R, dRdt,self.Omega, self.radius,self.mass, self.dot_masses)
         
-        d2Rdt2 = get_d2Rdt2(R, dRdt, U, self.Omega, self.dOmegadt, E)
+        d2Rdt2 = get_d2Rdt2(R, dRdt, self.U, W, self.Omega, self.dOmegadt, E)
         F = get_F(d2Rdt2, 9.8, self.mass, self.dot_masses)
-
-        Ms =  get_Ms(R, F, self.radious)
+        Ms =  get_Ms(R, F, self.radius, self.position)
         # Gravity force of the ball made no moment aganist tangent point
 
         F_all  = np.sum(F, axis=0)
         Ms_all = np.sum(Ms, axis=0)
 
-        self.dOmegadt = np.linalg.inv(J)*(Ms_all + np.dot(dJdt, self.Omega))
+        #print("F", F)
+        #print("Ms", Ms)
+        #print("Ms_all",Ms_all)
+
+        self.dOmegadt = np.dot(np.linalg.inv(J), (Ms_all + np.dot(dJdt, self.Omega)))
 
         total_mass  = np.sum(self.dot_masses) + self.mass
-        mass_center = np.sum(np.dot(R, np.diag(self.dot_masses)), axis=0) / total_mass
-
+        mass_center = self.position * self.mass
+        mass_center += np.sum(np.dot(np.diag(self.dot_masses), R), axis=0) 
+        mass_center = mass_center / total_mass
         plane_normal = np.asarray([0, 0, 1.0])
+        print("dOmega/dt", self.dOmegadt)
 
         dvcdt = F_all/total_mass # Get acceleration of center of the ball from center of mass acceleration
         dvcdt -= np.cross(self.dOmegadt, mass_center) 
-        dvcdt -= np.cross(self.Omega, np.cross(self.Omega, mass_center))
-
         dvcdt -= np.cross(self.Omega, np.cross(self.Omega, mass_center))
         dvcdt_proj = np.dot(F_all, plane_normal)
 
@@ -94,11 +96,14 @@ class HyroSphere(object):
             self.velocity = self.velocity - vc_proj*plane_normal
 
         self.position += self.velocity * dt
-        self.phi = self.phi + self.Omega * dt
-        self.Omega += self.dOmegadt
-        self.ksi = ksi_new
+        self.omega += self.ksi
         
-        self.U = get_U(self.U, Omega)
+        print("self.omega", self.omega)
+        self.ksi = ksi_new
+
+        self.phi = self.phi + self.omega * dt
+        self.Omega += self.dOmegadt
+        self.U = get_U(self.U, self.Omega)
 
 
 def get_dRdt(R, U, W, Omega):
@@ -121,19 +126,32 @@ def get_dRdt(R, U, W, Omega):
     dRdt = np.asarray(dRdt)
     return dRdt
 
-def get_dJdt(R, dRdt, Omega, r, masses):
+def get_Js(J_ball, R, dot_masses):
+    dot_masses = np.asarray(dot_masses)
+
+    n = dot_masses.shape[0]
+    Js = J_ball
+
+    for i in range(0, n):
+       Js += (np.dot(R[i],R[i])*np.eye(3) - np.outer(R[i],R[i])) * dot_masses[i]
+
+    return Js
+
+def get_dJdt(R, dRdt, Omega, r, mass, masses):
     n = R.shape[0]
+    m = R.shape[1]
+
     os_vec = np.asarray([0.0, 0.0, -r])
     dosdt  = np.cross(Omega, os_vec)
 
-    dJdt = 2.0*np.diag(masses)*np.diag(os_vec)*np.diag(dosdt)
+    dJdt = 2.0*np.diag([mass]*m)*np.diag(os_vec)*np.diag(dosdt)
 
-    for in range(0, n):
-        dJdt -= (np.linalg.outer(R[i,:], dRdt[i,:]) + np.linal.gouter(dRdt[i,:], R[i,:])) * masses[i]
+    for i in range(0, n):
+        dJdt -= (np.outer(R[i,:], dRdt[i,:]) + np.outer(dRdt[i,:], R[i,:])) * masses[i]
 
     return dJdt
 
-def get_d2Rdt2(R, dRdt, U, Omega, dOmegadt, E):
+def get_d2Rdt2(R, dRdt, U, W, Omega, dOmegadt, E):
     n = R.shape[0]
     OmegaAbs =  W + np.asarray([Omega]*n)
 
@@ -164,22 +182,24 @@ def get_F(d2Rdt2, g, ball_mass, masses):
     n = d2Rdt2.shape[0]
 
     d2Rdt2 += np.asarray([[0.0, 0.0, -g]] * n)
-    d2Rdt2 = np.dot(d2Rdt2, np.diag(masses))
+    d2Rdt2 = np.dot(np.diag(masses),d2Rdt2)
 
-    ball_gravity = ball_mass * [0.0, 0.0, -g]
+    ball_gravity = ball_mass * np.asarray([0.0, 0.0, -g])
     F = np.append(d2Rdt2, [ball_gravity], axis=0)
     return F
 
-def get_Ms(R, F, radious, ball_center):
+def get_Ms(R, F, radius, ball_center):
     n = R.shape[0]
-    Rs = R + np.asarray([[0, 0, -radious]]*n)
+    Rs = R + np.asarray([[0, 0, -radius]]*n)
 
     Ms = []
     for i in range(0, n):
         tmp = np.cross(R[i,:], F[i,:])
+        Ms.append(tmp)
 
-    sc_vec = [0, 0, -radious]
+    sc_vec = [0, 0, -radius]
     Ms.append(np.cross(sc_vec, F[-1, :])) # Gravity made no torque
+    Ms = np.asarray(Ms)
 
     return Ms
 
@@ -195,3 +215,19 @@ def get_U(U, Omega):
     new_U = np.asarray(new_U)
     return new_U
 
+
+def rotate_vec(omega, phi): # Rotate around omega matrix
+    R = np.eye(3)
+    omega = omega / np.linalg.norm(omega)
+
+    W = np.zeros((3,3))
+    W[0][1] = -omega[2]
+    W[0][2] =  omega[1]
+    W[1][2] = -omega[0]
+
+    W[1][0] = -W[0][1]
+    W[2][0] = -W[0][2]
+    W[2][1] = -W[1][2]
+
+    R = R + np.sin(phi)*W + (1.0-np.cos(phi))*np.dot(W,W)
+    return R
