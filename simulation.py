@@ -229,9 +229,6 @@ def main():
     cam = camera.LookAtCamera(rotation=[0,0,0], distance=1.0)
 
     while True:
-       # b1 += 0.05*np.cross(a1, b1)
-       # b1 = (b1 / np.linalg.norm(b1)) *  tetra_len / 2.0
-
         for event in pg.event.get():
             if event == pg.QUIT: 
                 pg.quit()
@@ -273,10 +270,9 @@ def main():
         cam.push()
         mc, F, R = hyrosphere.move(dt=0.01,ksi_new=np.zeros(4))
         drawHyrosphere(hyrosphere)
-        drawArrows(R, R+(F/20), radius=0.02, color=(1,0,0,0.5))
-        print("R:F", R, F)
+        drawArrows(R, R+(F/20), radius=0.02, color=(1,0,0,0.5), nseg=10, mseg=10)
+        #print("R:F", R, F)
        
-        #drawLines(start=[[0,0,0]], end=[mc-hyrosphere.position], color=(1,0,0,0.5), position=[0,0,0])
         pg.display.flip()
         cam.pop()
         pg.time.wait(20)

@@ -80,17 +80,13 @@ class HyroSphere(object):
         mass_center = mass_center / total_mass
         plane_normal = np.asarray([0, 0, 1.0])
         
-        print("dOmega/dt", self.dOmegadt)
-        print("mass center", mass_center)
-
         dvcdt = F_all/total_mass # Get acceleration of center of the ball from center of mass acceleration
         dvcdt -= np.cross(self.dOmegadt, mass_center) 
         dvcdt -= np.cross(self.Omega, np.cross(self.Omega, mass_center))
-        dvcdt_proj = np.dot(F_all, plane_normal)
+        dvcdt_proj = np.dot(dvcdt, plane_normal)
 
         if dvcdt_proj < 0.0:
             dvcdt = dvcdt - dvcdt_proj*plane_normal
-            print("dvc/dt", dvcdt)
 
         self.velocity += dvcdt * dt
         vc_proj = np.dot(self.velocity, plane_normal)
@@ -101,7 +97,6 @@ class HyroSphere(object):
         self.position += self.velocity * dt
         self.omega += self.ksi
 
-        print("self.omega", self.omega)
         self.ksi = ksi_new
 
         self.phi = self.phi + self.omega * dt
@@ -110,11 +105,8 @@ class HyroSphere(object):
                 self.phi[i] -= 2.0*np.pi
 
         self.Omega += self.dOmegadt
-        print("Omega abs:", np.linalg.norm(self.Omega))
+        self.Omega *= 0.999 # friction
         self.U = get_U(self.U, self.Omega, dt)
-
-        print("phi", self.phi)
-        print("position ", self.position)
 
         return mass_center, F, np.append(R, [np.zeros(3)], axis=0)
 
@@ -179,14 +171,14 @@ def get_d2Rdt2(R, dRdt, U, W, Omega, dOmegadt, E):
     for i in range(0, n):
         tmp = np.cross(OmegaAbs[i,:], R[i,:])
         tmp = np.cross(OmegaAbs[i,:], tmp)
-        tmp = tmp + dOmegadt + E[i,:]
+        tmp = tmp + np.cross(dOmegadt + E[i,:], R[i,:])
 
-        accel  = np.dot(tmp, G[i,:])*G[i,:]
+        accel  = tmp #np.dot(tmp, G[i,:])*G[i,:]
 
-        t_vec = R[i,:] - U[i,:] 
-        t_vec = t_vec / np.linalg.norm(t_vec)
+        #t_vec = R[i,:] - U[i,:] 
+        #t_vec = t_vec / np.linalg.norm(t_vec)
 
-        accel += -np.dot(dRdt[i,:], dRdt[i,:]) * t_vec
+        #accel += -np.dot(dRdt[i,:], dRdt[i,:]) * t_vec
         d2Rdt2.append(accel)
     return d2Rdt2
 
