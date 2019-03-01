@@ -71,12 +71,12 @@ class HyroSphere(object):
         self.dOmegadt = np.dot(np.linalg.inv(J), (Ms_all + np.dot(dJdt, self.Omega)))
 
         total_mass  = np.sum(self.dot_masses) + self.mass
-        #mass_center = self.position * self.mass
+        # mass_center = self.position * self.mass
         mass_center = np.sum(np.dot(np.diag(self.dot_masses), R), axis=0) 
         mass_center = mass_center / total_mass
         plane_normal = np.asarray([0, 0, 1.0])
         
-         # Get acceleration of center of the ball from center of mass acceleration
+        # Get acceleration of center of the ball from center of mass acceleration
         dvmdt = np.cross(self.dOmegadt, mass_center) 
         dvcdt = F_all/total_mass - np.cross(self.Omega, dvmdt)
         dvcdt_proj = np.dot(dvcdt, plane_normal)
@@ -175,11 +175,9 @@ def get_Ms(R, F, radius, ball_center):
 
     Ms = []
     for i in range(0, n):
-        tmp = np.cross(R[i,:], F[i,:])
+        tmp = np.cross(Rs[i,:], F[i,:])
         Ms.append(tmp)
 
-    sc_vec = [0, 0, -radius]
-    Ms.append(np.cross(sc_vec, F[-1, :])) # Gravity made no torque
     Ms = np.asarray(Ms)
 
     return Ms
