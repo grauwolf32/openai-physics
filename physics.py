@@ -54,13 +54,15 @@ class HyroSphere(object):
         R = A + B 
 
         J = get_Js(self.J_ball, R, self.dot_masses)
-        W = np.dot(np.diag(self.omega), self.U)
-        E = np.dot(np.diag(self.ksi), self.U)
+        #W = np.dot(np.diag(self.omega), self.U)
+        #E = np.dot(np.diag(self.ksi), self.U)
        
-        dRdt = get_dRdt(R, self.U, W, self.Omega)
+        #dRdt = get_dRdt(R, self.U, W, self.Omega)
+        #d2Rdt2 = get_d2Rdt2(R, dRdt, self.U, W, self.Omega, self.dOmegadt, E)
+        
+        dRdt, d2Rdt2 = get_dR(R, self.U, self.omega,self.ksi, self.Omega, self.dOmegadt)
         dJdt = get_dJdt(R, dRdt,self.Omega, self.radius,self.mass, self.dot_masses)
         
-        d2Rdt2 = get_d2Rdt2(R, dRdt, self.U, W, self.Omega, self.dOmegadt, E)
         F = get_F(d2Rdt2, 9.8, self.mass, self.dot_masses)
         Ms =  get_Ms(R, F, self.radius, self.position)
         # Gravity force of the ball made no moment aganist tangent point
@@ -106,19 +108,24 @@ class HyroSphere(object):
 
         return mass_center, F, R, dRdt #np.append(R, [np.zeros(3)], axis=0)
 
-
-def get_dRdt(R, U, W, Omega):
+def get_dR(R, U, omega, ksi, Omega,dOmegadt):
     n = R.shape[0]
-
-    OmegaAbs =  W + np.asarray([Omega]*n)
-    dRdt = []
+    dRdt   = []
+    d2Rdt2 = []
 
     for i in range(0, n):
-        tmp = np.cross(OmegaAbs[i,:], R[i,:])
-        dRdt.append(tmp)
+        omega_abs = U[i,:]*omega[i] + Omega
+        veloc  = np.cross(omega_abs, R[i,:])
+        dRdt.append(veloc)
 
+        accel  = np.cross(omega_abs, veloc) 
+        accel += np.cross(dOmegadt + ksi[i]*U[i,:], R[i,:])
+        d2Rdt2.append(accel)
+    
+    d2Rdt2 = np.asarray(d2Rdt2)
     dRdt = np.asarray(dRdt)
-    return dRdt
+    return dRdt, d2Rdt2
+
 
 def get_Js(J_ball, R, dot_masses):
     dot_masses = np.asarray(dot_masses)
@@ -144,19 +151,6 @@ def get_dJdt(R, dRdt, Omega, r, mass, masses):
         dJdt -= (np.outer(R[i,:], dRdt[i,:]) + np.outer(dRdt[i,:], R[i,:])) * masses[i]
 
     return dJdt
-
-def get_d2Rdt2(R, dRdt, U, W, Omega, dOmegadt, E):
-    n = R.shape[0]
-    OmegaAbs =  W + np.asarray([Omega]*n)
-    d2Rdt2 = []
-
-    for i in range(0, n):
-        accel  = np.cross(OmegaAbs[i,:], dRdt[i,:]) 
-        accel += np.cross(dOmegadt + E[i,:], R[i,:])
-        d2Rdt2.append(accel)
-    
-    d2Rdt2 = np.asarray(d2Rdt2)
-    return d2Rdt2
 
 def get_F(d2Rdt2, g, ball_mass, masses):
     d2Rdt2 = np.asarray(d2Rdt2)
