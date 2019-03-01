@@ -113,20 +113,13 @@ class HyroSphere(object):
 
 def get_dRdt(R, U, W, Omega):
     n = R.shape[0]
-    G = []
-    for i in range(0, n):
-        tmp = np.cross(R[i,:], U[i,:])
-        tmp = tmp / np.linalg.norm(tmp)
-        G.append(tmp)
-    G = np.asarray(G)
 
     OmegaAbs =  W + np.asarray([Omega]*n)
     dRdt = []
 
     for i in range(0, n):
         tmp = np.cross(OmegaAbs[i,:], R[i,:])
-        proj = np.dot(tmp, G[i,:])*G[i,:]
-        dRdt.append(proj)
+        dRdt.append(tmp)
 
     dRdt = np.asarray(dRdt)
     return dRdt
@@ -159,27 +152,14 @@ def get_dJdt(R, dRdt, Omega, r, mass, masses):
 def get_d2Rdt2(R, dRdt, U, W, Omega, dOmegadt, E):
     n = R.shape[0]
     OmegaAbs =  W + np.asarray([Omega]*n)
-
-    G = []
-    for i in range(0, n):
-        tmp = np.cross(R[i,:], U[i,:])
-        tmp = tmp / np.linalg.norm(tmp)
-        G.append(tmp)
-    G = np.asarray(G)
-
     d2Rdt2 = []
+
     for i in range(0, n):
-        tmp = np.cross(OmegaAbs[i,:], R[i,:])
-        tmp = np.cross(OmegaAbs[i,:], tmp)
-        tmp = tmp + np.cross(dOmegadt + E[i,:], R[i,:])
-
-        accel  = tmp #np.dot(tmp, G[i,:])*G[i,:]
-
-        #t_vec = R[i,:] - U[i,:] 
-        #t_vec = t_vec / np.linalg.norm(t_vec)
-
-        #accel += -np.dot(dRdt[i,:], dRdt[i,:]) * t_vec
+        accel  = np.cross(OmegaAbs[i,:], dRdt[i,:]) 
+        accel += np.cross(dOmegadt + E[i,:], R[i,:])
         d2Rdt2.append(accel)
+    
+    d2Rdt2 = np.asarray(d2Rdt2)
     return d2Rdt2
 
 def get_F(d2Rdt2, g, ball_mass, masses):

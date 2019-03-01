@@ -270,7 +270,7 @@ def main():
         cam.push()
         mc, F, R = hyrosphere.move(dt=0.01,ksi_new=np.zeros(4))
         drawHyrosphere(hyrosphere)
-        drawArrows(R, R+(F/20), radius=0.02, color=(1,0,0,0.5), nseg=10, mseg=10)
+        #drawArrows(R, R+(F/20), radius=0.02, color=(1,0,0,0.5), nseg=10, mseg=10)
         #print("R:F", R, F)
        
         pg.display.flip()
