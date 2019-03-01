@@ -90,9 +90,12 @@ class HyroSphere(object):
         for i in range(0, self.phi.shape[0]):
             if self.phi[i] >= 2.0*np.pi:
                 self.phi[i] -= 2.0*np.pi
+            elif self.phi[i] <= -2.0*np.pi:
+                self.phi[i] += 2.0*np.pi
 
         self.Omega += self.dOmegadt * dt
-        self.Omega *= 0.999 # friction
+        self.Omega *= 0.999 # friction loss
+
         self.U = get_U(self.U, self.Omega, dt)
 
         return mass_center, F, R, dRdt 
