@@ -1,7 +1,8 @@
 import numpy as np 
 
 class HyroSphere(object):
-    def __init__(self, t_len, mass, dot_masses, position, phi_start=np.zeros(4), omega_start=np.zeros(4), ksi_start=np.zeros(4), Omega_start=np.zeros(3)):
+    def __init__(self, t_len, mass, dot_masses, position, phi=np.zeros(4), omega=np.zeros(4), 
+                 ksi=np.zeros(4), Omega=np.zeros(3), dOmegadt=np.zeros(3), velocity=np.zeros(3), mu=0.001):
         self.radius = t_len * np.sqrt(3.0/8.0)
         self.t_len = t_len
         self.relative_system = np.eye(3) 
@@ -9,14 +10,16 @@ class HyroSphere(object):
         self.mass = mass
         self.dot_masses = np.asarray(dot_masses)
         self.position = np.asarray(position) # Position of center of the ball
-        self.velocity = np.zeros(3)
-        self.phi = np.asarray(phi_start)     # absolute values of angular speed
+        self.velocity = velocity
+        self.phi = np.asarray(phi)     # absolute values of angular speed
         
-        self.ksi = np.asarray(ksi_start)     # absolute values of angular acceleration
-        self.omega = np.asarray(omega_start) # and angular velocity for dot masses
-        self.Omega = np.asarray(Omega_start)
-        self.dOmegadt = np.zeros(3)
+        self.ksi = np.asarray(ksi)     # absolute values of angular acceleration
+        self.omega = np.asarray(omega) # and angular velocity for dot masses
+        self.Omega = np.asarray(Omega)
+        self.dOmegadt = dOmegadt
 
+        self.mu = mu
+        
         u1 = self.relative_system[2,:] / np.linalg.norm(self.relative_system[2,:]) 
         u2 = np.dot(rotate_vec(self.relative_system[0,:], np.arccos(-1.0/3.0)), u1)
         u3 = np.dot(rotate_vec(self.relative_system[2,:], 2.0/3.0*np.pi), u2)
