@@ -54,29 +54,19 @@ class HyroSphere(object):
         R = A + B 
 
         J = get_Js(self.J_ball, R, self.dot_masses)
-        #W = np.dot(np.diag(self.omega), self.U)
-        #E = np.dot(np.diag(self.ksi), self.U)
-       
-        #dRdt = get_dRdt(R, self.U, W, self.Omega)
-        #d2Rdt2 = get_d2Rdt2(R, dRdt, self.U, W, self.Omega, self.dOmegadt, E)
         
         dRdt, d2Rdt2 = get_dR(R, self.U, self.omega,self.ksi, self.Omega, self.dOmegadt)
         dJdt = get_dJdt(R, dRdt,self.Omega, self.radius,self.mass, self.dot_masses)
-        
-        F = get_F(d2Rdt2, 9.8, self.mass, self.dot_masses)
-        Ms =  get_Ms(R, F, self.radius, self.position)
-        # Gravity force of the ball made no moment aganist tangent point
 
-        F_all  = np.sum(F, axis=0)
+        total_mass  = np.sum(self.dot_masses) + self.mass
+        mass_center = np.sum(np.dot(np.diag(self.dot_masses), R), axis=0) / total_mass
+        plane_normal = np.asarray([0, 0, 1.0])
+
+        F, F_all = get_F(self.velocity, self.Omega, self.radius, d2Rdt2, 9.8, 0.01, self.mass, self.dot_masses, mass_center, plane_normal)
+        Ms =  get_Ms(R, F, self.radius, self.position)
         Ms_all = np.sum(Ms, axis=0)
 
         self.dOmegadt = np.dot(np.linalg.inv(J), (Ms_all + np.dot(dJdt, self.Omega)))
-
-        total_mass  = np.sum(self.dot_masses) + self.mass
-        # mass_center = self.position * self.mass
-        mass_center = np.sum(np.dot(np.diag(self.dot_masses), R), axis=0) 
-        mass_center = mass_center / total_mass
-        plane_normal = np.asarray([0, 0, 1.0])
         
         # Get acceleration of center of the ball from center of mass acceleration
         dvmdt = np.cross(self.dOmegadt, mass_center) 
@@ -90,11 +80,10 @@ class HyroSphere(object):
         vc_proj = np.dot(self.velocity, plane_normal)
 
         if vc_proj < 0.0 and self.position[-1] <= self.radius + 10e-3:
-            self.velocity = self.velocity - vc_proj*plane_normal
+            self.velocity -= vc_proj*plane_normal
 
         self.position += self.velocity * dt
         self.omega += self.ksi
-
         self.ksi = ksi_new
 
         self.phi = self.phi + self.omega * dt
@@ -106,7 +95,7 @@ class HyroSphere(object):
         self.Omega *= 0.999 # friction
         self.U = get_U(self.U, self.Omega, dt)
 
-        return mass_center, F, R, dRdt #np.append(R, [np.zeros(3)], axis=0)
+        return mass_center, F, R, dRdt 
 
 def get_dR(R, U, omega, ksi, Omega,dOmegadt):
     n = R.shape[0]
@@ -152,7 +141,7 @@ def get_dJdt(R, dRdt, Omega, r, mass, masses):
 
     return dJdt
 
-def get_F(d2Rdt2, g, ball_mass, masses):
+def get_F(velocity, Omega, radius, d2Rdt2, g, mu, ball_mass, masses, mass_center, plane_normal):
     d2Rdt2 = np.asarray(d2Rdt2)
     n = d2Rdt2.shape[0]
 
@@ -161,9 +150,34 @@ def get_F(d2Rdt2, g, ball_mass, masses):
 
     ball_gravity = ball_mass * np.asarray([0.0, 0.0, -g])
     F = np.append(d2Rdt2, [ball_gravity], axis=0)
-    return F
+    F_all = np.sum(F, axis=0)
+    
+    f_proj = np.dot(F_all, plane_normal)
+    if f_proj < 0.0:
+        N_abs = -f_proj
+    else:
+        N_abs = 0.0 
+
+    vs = velocity - np.cross(Omega, np.asarray([0, 0, radius])) # vs = vc - OmegaxSO
+    vs_proj = np.dot(vs, plane_normal)
+    if vs_proj < 0.0:
+        vs -= vs_proj*plane_normal
+    vs_norm = np.linalg.norm(vs)
+    if vs_norm > 10e-4:
+        vs = -vs / vs_norm
+
+    F_fric = mu * N_abs * vs
+    F_all += F_fric
+
+    F = np.append(F, [F_fric], axis=0)
+
+    
+    return F, F_all
 
 def get_Ms(R, F, radius, ball_center):
+    # Gravity force of the ball made no moment aganist tangent point
+    # Friction force made no moment aganist tangent point
+
     n = R.shape[0]
     Rs = R + np.asarray([[0, 0, -radius]]*n)
 
@@ -180,8 +194,8 @@ def get_U(U, Omega, dt):
     M = rotate_vec(Omega, np.linalg.norm(Omega)*dt)
     M = np.transpose(M)
     U = np.dot(U, M)
-    return U
 
+    return U
 
 def rotate_vec(omega, phi): # Rotate around omega matrix
     R = np.eye(3)
