@@ -10,8 +10,6 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
 import numpy as np
-
-from aux import rotate_vec
 from physics import *
 
 def drawSphere(center, radius, colors):
@@ -40,6 +38,127 @@ def drawCircle(radius_vec, omega ,center, color):
     glEnd()
     glPopMatrix()
 
+
+def drawCylinder(start, end, radius, color, close=True, nseg=20, mseg=40):
+    
+    if np.linalg.norm(start) > 10e-4:
+        d = (end-start)
+        p = np.cross(start, d)
+    else:
+        d = end
+        p = np.cross([1.0]*3, d)
+
+    p = p / np.linalg.norm(p)
+    p = p * radius
+
+    points = []
+    curr_point = p
+    alpha = 2.0*np.pi / nseg
+
+    for i in range(0, nseg):
+        points.append(curr_point)
+        curr_point = np.dot(rotate_vec(d, alpha), curr_point)
+
+    layers = []
+    curr_pos = start
+    step = d / (mseg - 1) 
+
+    for i in range(0, mseg):
+        layer = [point + start + i*step for point in points]
+        layers.append(layer)
+
+    quads = []
+    for i in range(0, mseg-1):
+        for j in range(0, nseg-1):
+            quads.append([layers[i][j], layers[i+1][j], layers[i+1][j+1], layers[i][j+1]])
+        
+        join_layer = [layers[mseg-1][0], layers[mseg-1][nseg-1], layers[0][nseg-1], layers[0][0]]
+        quads.append(join_layer)
+    
+    glPushMatrix()
+    glBegin(GL_QUADS)
+    glColor4f(color[0],color[1],color[2],color[3])
+
+    for quad in quads:
+        glVertex3fv(quad[0])
+        glVertex3fv(quad[1])
+        glVertex3fv(quad[2])
+        glVertex3fv(quad[3])
+
+    glEnd()
+
+    if close:
+        glBegin(GL_POLYGON)
+        for point in layers[0]:
+            glVertex3fv(point)
+        glEnd()
+
+        glBegin(GL_POLYGON)
+        for point in layers[mseg-1]:
+            glVertex3fv(point)
+        glEnd()
+
+    glPopMatrix()
+        
+def drawCylinders(start, end, radius, color, close=True, nseg=10, mseg=10):
+    n = np.asarray(start).shape[0]
+    for i in range(0, n):
+        drawCylinder(start[i], end[i], radius, color, close, nseg, mseg)
+
+def drawCone(start, end, radius, color, close, nseg=20):
+    if np.linalg.norm(start) > 10e-4:
+        d = (end-start)
+        p = np.cross(start, d)
+    else:
+        d = end
+        p = np.cross([1.0]*3, d)
+
+    p = p / np.linalg.norm(p)
+    p = p * radius
+
+    points = []
+    curr_point = p
+    alpha = 2.0*np.pi / nseg
+
+    for i in range(0, nseg):
+        points.append(curr_point + start)
+        curr_point = np.dot(rotate_vec(d, alpha), curr_point) 
+
+    glPushMatrix()
+    glBegin(GL_TRIANGLES)
+    glColor4f(color[0],color[1],color[2],color[3])
+
+    for i in range(0, nseg-1):
+        glVertex3fv(points[i])
+        glVertex3fv(end)
+        glVertex3fv(points[i+1])
+
+    glVertex3fv(points[nseg-1])
+    glVertex3fv(end)
+    glVertex3fv(points[0])
+
+    glEnd()
+
+    if close:
+        glBegin(GL_POLYGON)
+        for point in points:
+            glVertex3fv(point)
+        glEnd()
+
+    glPopMatrix()
+
+def drawArrow(start, end, radius, color, nseg=20, mseg=20):
+    d = end - start
+    h = 0.7*d
+
+    drawCylinder(start, start+h, radius, color,close=True, nseg=nseg, mseg=mseg)
+    drawCone(start+h, end, radius=radius*1.4, color=color, close=True, nseg=nseg )
+
+def drawArrows(start, end, radius, color, nseg=20, mseg=20):
+    n = np.asarray(start).shape[0]
+    for i in range(0, n):
+        drawArrow(start[i], end[i], radius, color, nseg, mseg)
+
 def drawLines(start, end, color, position):
     glPushMatrix()
     glTranslatef(position[0], position[1], position[2])
@@ -53,19 +172,7 @@ def drawLines(start, end, color, position):
     glPopMatrix()
 
 def drawHyrosphere(hyrosphere):
-    #U = hyrosphere.U 
-    relative_system = hyrosphere.relative_system
-    u1 = relative_system[2,:] / np.linalg.norm(relative_system[2,:]) 
-    u2 = np.dot(rotate_vec(relative_system[0,:], np.arccos(-1.0/3.0)), u1)
-    u3 = np.dot(rotate_vec(relative_system[2,:], 2.0/3.0*np.pi), u2)
-    u4 = np.dot(rotate_vec(relative_system[2,:], 2.0/3.0*np.pi), u3)
-
-    u1 = u1 / np.linalg.norm(u1)
-    u2 = u2 / np.linalg.norm(u2)
-    u3 = u3 / np.linalg.norm(u3)
-    u4 = u4 / np.linalg.norm(u4)
-
-    U = np.array([u1, u2, u3, u4])
+    U = hyrosphere.U 
     A = U * np.sqrt(1.0/8.0)
 
     b1 = np.cross(A[0,:], A[1,:])
@@ -87,8 +194,13 @@ def drawHyrosphere(hyrosphere):
     R = A + B 
 
     zeros = np.zeros(3)
-    drawLines(start=[zeros,zeros,zeros,zeros], end=A, color=(1,0,0,0.5), position=(0,0,0,0))
+    drawLines(start=[zeros,zeros,zeros, zeros], end=A, color=(1,0,0,0.5), position=(0,0,0,0))
     drawLines(start=A, end=R, color=(1,0,0,0.5), position=(0,0,0,0))
+
+    #drawCylinders([zeros,zeros,zeros, zeros],A,radius=0.02, color=(1,0,0,0.5))
+    #drawCylinders(A,R,radius=0.02, color=(1,0,0,0.5))
+
+    #drawArrow(A[0], R[0],radius=0.02, color=(1,0,0,0.5) )
 
     drawCircle(B[0], A[0], A[0], color=(0,0,0.7,0.3))
     drawCircle(B[1], A[1], A[1], color=(0,0,0.7,0.3))
@@ -130,7 +242,7 @@ def main():
                     pg.quit()
                     quit()
                 elif event.key == K_e:
-                    hyrosphere.move(dt=0.05, ksi_new=[0,0,0,0.5])
+                    mc, F, R = hyrosphere.move(dt=0.01,ksi_new=[0.0,0.0,0.0,0.5])
             
         keys = pg.key.get_pressed()
 
@@ -159,11 +271,15 @@ def main():
         
         #glEnable(GL_LIGHTING)
         cam.push()
+        mc, F, R = hyrosphere.move(dt=0.01,ksi_new=np.zeros(4))
         drawHyrosphere(hyrosphere)
-        hyrosphere.move(dt=0.01,ksi_new=np.zeros(4))
+        drawArrows(R, R+(F/20), radius=0.02, color=(1,0,0,0.5))
+        print("R:F", R, F)
+       
+        #drawLines(start=[[0,0,0]], end=[mc-hyrosphere.position], color=(1,0,0,0.5), position=[0,0,0])
         pg.display.flip()
         cam.pop()
-        pg.time.wait(200)
+        pg.time.wait(20)
 
 if __name__ == "__main__":
     main()

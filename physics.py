@@ -75,11 +75,13 @@ class HyroSphere(object):
         self.dOmegadt = np.dot(np.linalg.inv(J), (Ms_all + np.dot(dJdt, self.Omega)))
 
         total_mass  = np.sum(self.dot_masses) + self.mass
-        mass_center = self.position * self.mass
-        mass_center += np.sum(np.dot(np.diag(self.dot_masses), R), axis=0) 
+        #mass_center = self.position * self.mass
+        mass_center = np.sum(np.dot(np.diag(self.dot_masses), R), axis=0) 
         mass_center = mass_center / total_mass
         plane_normal = np.asarray([0, 0, 1.0])
+        
         print("dOmega/dt", self.dOmegadt)
+        print("mass center", mass_center)
 
         dvcdt = F_all/total_mass # Get acceleration of center of the ball from center of mass acceleration
         dvcdt -= np.cross(self.dOmegadt, mass_center) 
@@ -88,6 +90,7 @@ class HyroSphere(object):
 
         if dvcdt_proj < 0.0:
             dvcdt = dvcdt - dvcdt_proj*plane_normal
+            print("dvc/dt", dvcdt)
 
         self.velocity += dvcdt * dt
         vc_proj = np.dot(self.velocity, plane_normal)
@@ -97,13 +100,23 @@ class HyroSphere(object):
 
         self.position += self.velocity * dt
         self.omega += self.ksi
-        
+
         print("self.omega", self.omega)
         self.ksi = ksi_new
 
         self.phi = self.phi + self.omega * dt
+        for i in range(0, self.phi.shape[0]):
+            if self.phi[i] >= 2.0*np.pi:
+                self.phi[i] -= 2.0*np.pi
+
         self.Omega += self.dOmegadt
-        self.U = get_U(self.U, self.Omega)
+        print("Omega abs:", np.linalg.norm(self.Omega))
+        self.U = get_U(self.U, self.Omega, dt)
+
+        print("phi", self.phi)
+        print("position ", self.position)
+
+        return mass_center, F, np.append(R, [np.zeros(3)], axis=0)
 
 
 def get_dRdt(R, U, W, Omega):
@@ -203,17 +216,10 @@ def get_Ms(R, F, radius, ball_center):
 
     return Ms
 
-def get_U(U, Omega):
-    n = U.shape[0]
-    new_U = []
-
-    for i in range(0, n):
-        tmp = np.cross(Omega, U[i,:])
-        tmp = tmp / np.linalg.norm(tmp)
-        new_U.append(tmp)
-    
-    new_U = np.asarray(new_U)
-    return new_U
+def get_U(U, Omega, dt):
+    M = rotate_vec(Omega, np.linalg.norm(Omega)*dt)
+    U = np.dot(U, M)
+    return U
 
 
 def rotate_vec(omega, phi): # Rotate around omega matrix
