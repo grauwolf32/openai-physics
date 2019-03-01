@@ -193,7 +193,11 @@ def get_U(U, Omega, dt):
 
 def rotate_vec(omega, phi): # Rotate around omega matrix
     R = np.eye(3)
-    omega = omega / np.linalg.norm(omega)
+    omega_norm = np.linalg.norm(omega)
+    if omega_norm < 1e-4:
+        return R
+
+    omega = omega / omega_norm
 
     W = np.zeros((3,3))
     W[0][1] = -omega[2]

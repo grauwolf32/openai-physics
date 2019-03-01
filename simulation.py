@@ -221,11 +221,10 @@ def main():
     pg.display.set_mode(display, DOUBLEBUF|OPENGL)
 
     gluPerspective(45, display[0]/display[1], 0.1, 30.0)
-    glTranslatef(0.0, 0.0, -5)
-    glRotatef(0, 0, 0 ,0)
+    glTranslatef(0.0, 0.0, -3)
 
     hyrosphere = HyroSphere(t_len=1.0, mass=8, dot_masses=[1.0]*4, position=[0.0,0.0,0.0])
-    cam = camera.LookAtCamera(rotation=[0,0,0], distance=1.0)
+    cam = camera.LookAtCamera(rotation=[90,0,0], distance=1.0)
 
     while True:
         for event in pg.event.get():
@@ -248,19 +247,19 @@ def main():
             cam.distance += 0.05
 
         if keys[K_LEFT]:
-            cam.roty -= 0.5
+            cam.roty -= 3
         if keys[K_RIGHT]:
-            cam.roty += 0.5
+            cam.roty += 3
 
         if keys[K_w]:
-            cam.rotx += 0.5
+            cam.rotx += 3
         if keys[K_s]:
-            cam.rotx -= 0.5
+            cam.rotx -= 3
 
         if keys[K_q]:
-            cam.rotz += 0.5
+            cam.rotz += 3
         if keys[K_a]:
-            cam.rotz -= 0.5
+            cam.rotz -= 3
         
         glClearColor(1.0, 1.0, 1.0, 1.0) 
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
@@ -270,8 +269,8 @@ def main():
         mc, F, R, dRdt = hyrosphere.move(dt=0.01,ksi_new=np.zeros(4))
         drawHyrosphere(hyrosphere)
         drawArrows(R, R+(dRdt), radius=0.02, color=(1,0,0,0.5), nseg=10, mseg=10)
-
         pg.display.flip()
+
         cam.pop()
         pg.time.wait(20)
 
