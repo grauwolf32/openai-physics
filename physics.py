@@ -68,10 +68,6 @@ class HyroSphere(object):
         F_all  = np.sum(F, axis=0)
         Ms_all = np.sum(Ms, axis=0)
 
-        #print("F", F)
-        #print("Ms", Ms)
-        #print("Ms_all",Ms_all)
-
         self.dOmegadt = np.dot(np.linalg.inv(J), (Ms_all + np.dot(dJdt, self.Omega)))
 
         total_mass  = np.sum(self.dot_masses) + self.mass
@@ -80,9 +76,9 @@ class HyroSphere(object):
         mass_center = mass_center / total_mass
         plane_normal = np.asarray([0, 0, 1.0])
         
-        dvcdt = F_all/total_mass # Get acceleration of center of the ball from center of mass acceleration
-        dvcdt -= np.cross(self.dOmegadt, mass_center) 
-        dvcdt -= np.cross(self.Omega, np.cross(self.Omega, mass_center))
+         # Get acceleration of center of the ball from center of mass acceleration
+        dvmdt = np.cross(self.dOmegadt, mass_center) 
+        dvcdt = F_all/total_mass - np.cross(self.Omega, dvmdt)
         dvcdt_proj = np.dot(dvcdt, plane_normal)
 
         if dvcdt_proj < 0.0:
@@ -104,11 +100,11 @@ class HyroSphere(object):
             if self.phi[i] >= 2.0*np.pi:
                 self.phi[i] -= 2.0*np.pi
 
-        self.Omega += self.dOmegadt
+        self.Omega += self.dOmegadt * dt
         self.Omega *= 0.999 # friction
         self.U = get_U(self.U, self.Omega, dt)
 
-        return mass_center, F, np.append(R, [np.zeros(3)], axis=0)
+        return mass_center, F, R, dRdt #np.append(R, [np.zeros(3)], axis=0)
 
 
 def get_dRdt(R, U, W, Omega):
@@ -190,6 +186,7 @@ def get_Ms(R, F, radius, ball_center):
 
 def get_U(U, Omega, dt):
     M = rotate_vec(Omega, np.linalg.norm(Omega)*dt)
+    M = np.transpose(M)
     U = np.dot(U, M)
     return U
 

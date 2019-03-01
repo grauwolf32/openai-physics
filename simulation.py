@@ -225,7 +225,6 @@ def main():
     glRotatef(0, 0, 0 ,0)
 
     hyrosphere = HyroSphere(t_len=1.0, mass=8, dot_masses=[1.0]*4, position=[0.0,0.0,0.0])
-
     cam = camera.LookAtCamera(rotation=[0,0,0], distance=1.0)
 
     while True:
@@ -239,7 +238,7 @@ def main():
                     pg.quit()
                     quit()
                 elif event.key == K_e:
-                    mc, F, R = hyrosphere.move(dt=0.01,ksi_new=[0.0,0.0,0.0,0.5])
+                    mc, F, R, dRdt = hyrosphere.move(dt=0.01,ksi_new=[0.0,0.0,0.0,0.5])
             
         keys = pg.key.get_pressed()
 
@@ -268,11 +267,10 @@ def main():
         
         #glEnable(GL_LIGHTING)
         cam.push()
-        mc, F, R = hyrosphere.move(dt=0.01,ksi_new=np.zeros(4))
+        mc, F, R, dRdt = hyrosphere.move(dt=0.01,ksi_new=np.zeros(4))
         drawHyrosphere(hyrosphere)
-        #drawArrows(R, R+(F/20), radius=0.02, color=(1,0,0,0.5), nseg=10, mseg=10)
-        #print("R:F", R, F)
-       
+        drawArrows(R, R+(dRdt), radius=0.02, color=(1,0,0,0.5), nseg=10, mseg=10)
+
         pg.display.flip()
         cam.pop()
         pg.time.wait(20)

@@ -11,8 +11,6 @@ from OpenGL.GLUT import *
 
 import numpy as np
 
-from aux import rotate_vec
-
 phi_start = np.zeros(4)
 m_ball = 1.0
 tetra_len = 1.0
