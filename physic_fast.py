@@ -9,7 +9,7 @@ class HyroSphere(object):
         
         self.mass = mass
         self.dot_masses = np.asarray(dot_masses)
-        self.position = np.asarray(position) # Position of center of the ball
+        self.position = np.asarray(position) + np.asarray([0.0,0.0,self.radius]) # Position of center of the ball
         self.velocity = velocity
         self.phi = np.asarray(phi)     # absolute values of angular speed
         
@@ -103,22 +103,29 @@ class HyroSphere(object):
         F = np.append(F, [self.mass * g_vec], axis=0)
         F_all = np.sum(F, axis=0)
     
-        f_proj = np.dot(F_all, plane_normal)
-        if f_proj < 0.0:
-            N_abs = -f_proj
+        if self.position[-1] <= self.radius + 1e-3: # On the plane
+            f_proj = np.dot(F_all, plane_normal)
+            if f_proj < 0.0:
+                N_abs = -f_proj
+            else:
+                N_abs = 0.0 
+
+            vs = self.velocity - np.cross(self.Omega, -os_vec) # vs = vc - OmegaxSO
+            vs_proj = np.dot(vs, plane_normal)
+            
+            if vs_proj < 0.0:
+                vs -= vs_proj*plane_normal
+
+            vs_norm = np.linalg.norm(vs)
+            
+            if vs_norm > 10e-4:
+                vs = -vs / vs_norm
+
+            F_fric = self.mu * N_abs * vs
+
         else:
-            N_abs = 0.0 
+            F_fric = np.zeros(3)
 
-        vs = self.velocity - np.cross(self.Omega, -os_vec) # vs = vc - OmegaxSO
-        vs_proj = np.dot(vs, plane_normal)
-        if vs_proj < 0.0:
-            vs -= vs_proj*plane_normal
-
-        vs_norm = np.linalg.norm(vs)
-        if vs_norm > 10e-4:
-            vs = -vs / vs_norm
-
-        F_fric = self.mu * N_abs * vs
         F_all += F_fric
 
         F = np.append(F, [F_fric], axis=0)
