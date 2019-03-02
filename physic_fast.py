@@ -140,7 +140,7 @@ class HyroSphere(object):
         dvcdt = F_all/total_mass - np.cross(self.Omega, dvmdt)
         dvcdt_proj = np.dot(dvcdt, plane_normal)
 
-        if dvcdt_proj < 0.0:
+        if dvcdt_proj < 0.0 and self.position[-1] <= self.radius + 10e-3:
             dvcdt = dvcdt - dvcdt_proj*plane_normal
 
         self.velocity += dvcdt * dt
@@ -150,8 +150,8 @@ class HyroSphere(object):
             self.velocity -= vc_proj*plane_normal
 
         self.position += self.velocity * dt
-        self.omega += self.ksi
-        self.ksi = ksi_new
+        self.omega += self.ksi * dt
+        self.ksi = np.asarray(ksi_new)
 
         self.phi = self.phi + self.omega * dt
         for i in range(0, self.phi.shape[0]):
@@ -167,7 +167,7 @@ class HyroSphere(object):
         M = np.transpose(M)
         self.U = np.dot(self.U, M)
 
-        return mass_center, F, R, dRdt 
+        return R, dRdt 
 
 def rotate_vec(omega, phi): # Rotate around omega matrix
     R = np.eye(3)
