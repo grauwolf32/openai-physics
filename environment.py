@@ -80,8 +80,8 @@ class HyrospherePhysicsEnv(gym.Env):
               dRdt[0], dRdt[1], dRdt[2], dRdt[3]))
         ob = np.asarray(ob)
 
-        reward = np.dot(self.hyrosphere.velocity, np.asarray([1.0,0.0,0.0])) 
-
+        reward =  np.dot(self.hyrosphere.velocity, np.asarray([1.0,0.0,0.0]))
+        reward -= np.abs(np.dot(self.hyrosphere.velocity, np.asarray([0.0,1.0,0.0]))) 
         self.total_time += dt
         
         done = False
@@ -136,12 +136,6 @@ class HyrospherePhysicsEnv(gym.Env):
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
         
         self.cam.push()
-        text = "position : {0:.2f} {1:.2f} {2:.2f}".format(self.hyrosphere.position[0], self.hyrosphere.position[1], self.hyrosphere.position[2])
-        drawText(position=(-1.0,0.0,1.0), textString=text)
-
-        text = "velocity : {0:.2f} {1:.2f} {2:.2f}".format(self.hyrosphere.velocity[0], self.hyrosphere.velocity[1], self.hyrosphere.velocity[2])
-        drawText(position=(-1.0,0.0,0.8), textString=text)
-
         drawHyrosphere(self.hyrosphere)
         pg.display.flip()
 
@@ -154,13 +148,6 @@ class HyrospherePhysicsEnv(gym.Env):
 
     def close(self):
         pass
-
-def drawText(position, textString, font_size=32):     
-    font = pg.font.Font (None, font_size)
-    textSurface = font.render(textString, True, (255,255,255,255), (0,0,0,255))     
-    textData = pg.image.tostring(textSurface, "RGBA", True)     
-    glRasterPos3d(*position)     
-    glDrawPixels(textSurface.get_width(), textSurface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, textData)
 
 if __name__ == "__main__":
     env = HyrospherePhysicsEnv()
