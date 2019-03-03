@@ -24,6 +24,8 @@ class EnvSpec(object):
         self.id = id
 
 class HyrospherePhysicsConstantsClass(object):
+    metadata = {'render.modes': ['human']}
+    
     def __init__(self):
         self.dt = 0.01
         state_len = 41

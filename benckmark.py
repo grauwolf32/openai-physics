@@ -1,5 +1,5 @@
 import time
-import physics
+from gym_hyrosphere.envs import physic_fast as physics
 
 def main():
     hs = physics.HyroSphere(t_len=1.0, mass=8, dot_masses=[1.0]*4, position=[0.0,0.0,0.0])
