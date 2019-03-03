@@ -2,7 +2,8 @@ import numpy as np
 
 class HyroSphere(object):
     def __init__(self, t_len, mass, dot_masses, position, phi=np.zeros(4), omega=np.zeros(4), 
-                 ksi=np.zeros(4), Omega=np.zeros(3), dOmegadt=np.zeros(3), velocity=np.zeros(3), mu=0.001):
+                 ksi=np.zeros(4), Omega=np.zeros(3), dOmegadt=np.zeros(3), velocity=np.zeros(3),
+                 mu=0.001, max_omega=100, friction_loss=0.001):
         self.radius = t_len * np.sqrt(3.0/8.0)
         self.t_len = t_len
         self.relative_system = np.eye(3) 
@@ -17,7 +18,9 @@ class HyroSphere(object):
         self.omega = np.asarray(omega) # and angular velocity for dot masses
         self.Omega = np.asarray(Omega)
         self.dOmegadt = dOmegadt
-
+        
+        self.max_omega = max_omega
+        self.friction_loss = friction_loss
         self.mu = mu
 
         u1 = self.relative_system[2,:] / np.linalg.norm(self.relative_system[2,:]) 
@@ -162,6 +165,10 @@ class HyroSphere(object):
         self.omega += self.ksi * dt
         self.ksi = np.asarray(ksi_new)
 
+        for i in range(0, n): # can't speedup more than max_omega
+            if np.abs(self.omega[i]) > self.max_omega:
+                self.omega[i] = np.sign(self.omega[i])*self.max_omega
+
         self.phi = self.phi + self.omega * dt
         for i in range(0, self.phi.shape[0]):
             if self.phi[i] >= 2.0*np.pi:
@@ -170,7 +177,7 @@ class HyroSphere(object):
                 self.phi[i] += 2.0*np.pi
 
         self.Omega += self.dOmegadt * dt
-        self.Omega *= 0.999 # friction loss
+        self.Omega *= (1.0-self.friction_loss) # friction loss
 
         M = rotate_vec(self.Omega, np.linalg.norm(self.Omega)*dt)
         M = np.transpose(M)

@@ -28,11 +28,15 @@ class HyrospherePhysicsConstantsClass(object):
         self.dt = 0.01
         state_len = 41
         n_objects = 4
-        max_value = 1000
         max_ksi   = 10
         max_time  = 10
-        timestep_limit = int(max_time/self.dt)
+        max_value = 1000
 
+        self.max_omega = 100.0
+        self.friction_loss = 0.001
+        self.mu = 0.01
+
+        timestep_limit = int(max_time/self.dt)
         self.spec = EnvSpec(timestep_limit = timestep_limit , id=1)
 
         ob_low  = np.asarray([-max_value]*state_len)
@@ -44,11 +48,13 @@ class HyrospherePhysicsConstantsClass(object):
 HyrospherePhysicsConstants = HyrospherePhysicsConstantsClass()
 
 class HyrospherePhysicsEnv(gym.Env):
-    def __init__(self, visualization=False):
+    def __init__(self, visualization=True):
         self.hyrosphere = HyroSphere(t_len=1.0, mass=4, dot_masses=np.asarray([1.0]*4),\
                                     position = np.zeros(3), phi=np.zeros(4), omega=np.zeros(4), 
                                     ksi=np.zeros(4), Omega=np.zeros(3), dOmegadt=np.zeros(3),
-                                    velocity=np.zeros(3), mu=0.001)
+                                    velocity=np.zeros(3), mu=HyrospherePhysicsConstants.mu,
+                                    max_omega=HyrospherePhysicsConstants.max_omega,
+                                    friction_loss=HyrospherePhysicsConstants.friction_loss)
         self.total_time = 0.0
         self.action_space = HyrospherePhysicsConstants.ac_space
         self.observation_space = HyrospherePhysicsConstants.ob_space
@@ -59,7 +65,7 @@ class HyrospherePhysicsEnv(gym.Env):
             pg.init()
             
             self.display = (800, 600)
-            self.cam = camera.LookAtCamera(rotation=[90,0,0], distance=1.0)
+            self.cam = LookAtCamera(rotation=[90,0,0], distance=1.0)
             self.surface = pg.display.set_mode(self.display, DOUBLEBUF|OPENGL|OPENGLBLIT)
             self.font = pg.font.SysFont("Times New Roman", 12)
 
@@ -96,7 +102,9 @@ class HyrospherePhysicsEnv(gym.Env):
         self.hyrosphere = HyroSphere(t_len=1.0, mass=4, dot_masses=np.asarray([1.0]*4),\
                                     position = np.zeros(3), phi=np.zeros(4), omega=np.zeros(4), 
                                     ksi=np.zeros(4), Omega=np.zeros(3), dOmegadt=np.zeros(3),
-                                    velocity=np.zeros(3), mu=0.001)
+                                    velocity=np.zeros(3), mu=HyrospherePhysicsConstants.mu,
+                                    max_omega=HyrospherePhysicsConstants.max_omega,
+                                    friction_loss=HyrospherePhysicsConstants.friction_loss)
         self.total_time = 0.0
 
         U = self.hyrosphere.U 
