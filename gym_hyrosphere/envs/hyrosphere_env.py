@@ -48,7 +48,7 @@ class HyrospherePhysicsConstantsClass(object):
 HyrospherePhysicsConstants = HyrospherePhysicsConstantsClass()
 
 class HyrospherePhysicsEnv(gym.Env):
-    def __init__(self, visualization=True):
+    def __init__(self):
         self.hyrosphere = HyroSphere(t_len=1.0, mass=4, dot_masses=np.asarray([1.0]*4),\
                                     position = np.zeros(3), phi=np.zeros(4), omega=np.zeros(4), 
                                     ksi=np.zeros(4), Omega=np.zeros(3), dOmegadt=np.zeros(3),
@@ -59,19 +59,22 @@ class HyrospherePhysicsEnv(gym.Env):
         self.action_space = HyrospherePhysicsConstants.ac_space
         self.observation_space = HyrospherePhysicsConstants.ob_space
         self.spec = HyrospherePhysicsConstants.spec
+        self.render_init = False
         self.seed()
+        
 
-        if visualization:
-            pg.init()
+    def _init_renderer(self):
+        pg.init()
             
-            self.display = (800, 600)
-            self.cam = LookAtCamera(rotation=[90,0,0], distance=1.0)
-            self.surface = pg.display.set_mode(self.display, DOUBLEBUF|OPENGL|OPENGLBLIT)
-            self.font = pg.font.SysFont("Times New Roman", 12)
+        self.display = (800, 600)
+        self.cam = LookAtCamera(rotation=[90,0,0], distance=1.0)
+        self.surface = pg.display.set_mode(self.display, DOUBLEBUF|OPENGL|OPENGLBLIT)
+        self.font = pg.font.SysFont("Times New Roman", 12)
 
-            glutInit([])
-            gluPerspective(45, self.display[0]/self.display[1], 0.1, 30.0)
-            glTranslatef(0.0, 0.0, -2)
+        glutInit([])
+        gluPerspective(45, self.display[0]/self.display[1], 0.1, 30.0)
+        glTranslatef(0.0, 0.0, -2)
+        self.render_init = True
         
 
     def step(self, action):
@@ -140,6 +143,9 @@ class HyrospherePhysicsEnv(gym.Env):
         return ob
     
     def render(self, mode='human', close='False'):
+        if not self.render_init:
+            self._init_renderer()
+            
         glClearColor(1.0, 1.0, 1.0, 1.0) 
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
         
