@@ -1,16 +1,17 @@
 import sys
 import string
 import pygame as pg 
-import camera
+import numpy as np
 
+from math import sqrt
 from pygame.locals import *
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
-import numpy as np
-from physic_fast import *
+from gym_hyrosphere.envs.physics import rotate_vec
+
 
 def drawText(position, textString, font_size=32):     
     font = pg.font.Font (None, font_size)
@@ -230,69 +231,99 @@ def drawHyrosphere(hyrosphere):
     text = "velocity : {0:.2f} {1:.2f} {2:.2f}".format(hyrosphere.velocity[0], hyrosphere.velocity[1], hyrosphere.velocity[2])
     drawText(position=(-1.0,0.0,0.8), textString=text)
 
+class CameraBase(object):
+    """camera.Base camera object all other inherit from..."""
+    def __init__(self, pos=[0,0,0], rotation=[0,0,0]):
+        """create the camera
+           pos = position of the camera
+           rotation = rotation of camera"""
+        self.posx, self.posy, self.posz = pos
+        self.rotx, self.roty, self.rotz = rotation
 
-def main():
-    pg.init()
-    glutInit([])
-    display = (800, 600)
+    def push(self):
+        """Activate the camera - anything rendered after this uses the cameras transformations."""
+        glPushMatrix()
 
-    pg.display.set_mode(display, DOUBLEBUF|OPENGL)
+    def pop(self):
+        """Deactivate the camera - must be called after push or will raise an OpenGL error"""
+        glPopMatrix()
 
-    gluPerspective(45, display[0]/display[1], 0.1, 30.0)
-    glTranslatef(0.0, 0.0, -3)
+    def get_pos(self):
+        """Return the position of the camera as a tuple"""
+        return self.posx, self.posy, self.posz
 
-    hyrosphere = HyroSphere(t_len=1.0, mass=8, dot_masses=[1.0]*4, position=[0.0,0.0,0.0])
-    cam = camera.LookAtCamera(rotation=[90,0,0], distance=1.0)
+    def set_pos(self, pos):
+        """Set the position of the camera from a tuple"""
+        self.posx, self.posy, self.posz = pos
 
-    while True:
-        for event in pg.event.get():
-            if event == pg.QUIT: 
-                pg.quit()
-                quit()
+    def get_rotation(self):
+        """Return the rotation of the camera as a tuple"""
+        return self.rotx, self.roty, self.rotz
 
-            elif event.type == KEYDOWN:
-                if event.key == K_ESCAPE:
-                    pg.quit()
-                    quit()
-                elif event.key == K_e:
-                    R, dRdt = hyrosphere.move(dt=0.01,ksi_new=[0.0,0.0,0.0,0.5])
-            
-        keys = pg.key.get_pressed()
+    def set_facing_matrix(self):
+        """Transforms the matrix so that all objects are facing camera - used in Image3D (billboard sprites)"""
+        pass
 
-        if keys[K_UP]:
-            cam.distance -= 0.05
-        if keys[K_DOWN]:
-            cam.distance += 0.05
+    def set_skybox_data(self):
+        """Transforms the view only for a skybox, ie only rotation is taken into account, not position"""
+        pass
 
-        if keys[K_LEFT]:
-            cam.roty -= 3
-        if keys[K_RIGHT]:
-            cam.roty += 3
+class LookFromCamera(CameraBase):
+    """camera.LookFromCamera is a FPS camera"""
+    def __init__(self, pos=(0,0,0), rotation=(0,0,0)):
+        CameraBase.__init__(self, pos, rotation)
 
-        if keys[K_w]:
-            cam.rotx += 3
-        if keys[K_s]:
-            cam.rotx -= 3
+    def push(self):
+        glPushMatrix()
+        glRotatef(self.rotx, 1, 0, 0)
+        glRotatef(self.roty, 0, 1, 0)
+        glRotatef(self.rotz, 0, 0, 1)
+        glTranslatef(-self.posx, -self.posy, self.posz)
 
-        if keys[K_q]:
-            cam.rotz += 3
-        if keys[K_a]:
-            cam.rotz -= 3
-        
-        glClearColor(1.0, 1.0, 1.0, 1.0) 
-        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
-        
-        #glEnable(GL_LIGHTING)
-        cam.push()
-        R, dRdt = hyrosphere.move(dt=0.01,ksi_new=np.zeros(4))
+    def pop(self):
+        glPopMatrix()
 
-        K = np.append(R, [np.zeros(3), np.asarray([0,0,-hyrosphere.radius])], axis=0)
-        drawHyrosphere(hyrosphere)
-        pg.display.flip()
+    def get_pos(self):
+        return self.posx, self.posy, self.posz
 
+    def get_rotation(self):
+        return self.rotx, self.roty, self.rotz
 
-        cam.pop()
-        pg.time.wait(20)
+    def set_facing_matrix(self):
+        glRotatef(-self.rotz, 0, 0, 1)
+        glRotatef(-self.roty, 0, 1, 0)
+        glRotatef(-self.rotx, 1, 0, 0)
 
-if __name__ == "__main__":
-    main()
+    def set_skybox_data(self):
+        glRotatef(self.rotx, 1, 0, 0)
+        glRotatef(self.roty, 0, 1, 0)
+        glRotatef(self.rotz, 0, 0, 1)
+
+class LookAtCamera(CameraBase):
+    """camera.LookAtCamera is a third-person camera"""
+    def __init__(self, pos=[0,0,0], rotation=[0,0,0],
+                 distance=0):
+        """create the camera
+           pos is the position the camera is looking at
+           rotation is how much we are rotated around the object
+           distance is how far back from the object we are"""
+        CameraBase.__init__(self, pos, rotation)
+        self.distance = distance
+
+    def push(self):
+        glPushMatrix()
+        glTranslatef(0, 0, -self.distance)
+        glRotatef(-self.rotx, 1, 0, 0)
+        glRotatef(-self.roty, 0, 1, 0)
+        glRotatef(self.rotz, 0, 0, 1)
+        glTranslatef(-self.posx, -self.posy, self.posz)
+
+    def set_facing_matrix(self):
+        glRotatef(-self.rotz, 0, 0, 1)
+        glRotatef(self.roty, 0, 1, 0)
+        glRotatef(self.rotx, 1, 0, 0)
+
+    def set_skybox_data(self):
+        glRotatef(-self.rotx, 1, 0, 0)
+        glRotatef(-self.roty, 0, 1, 0)
+        glRotatef(self.rotz, 0, 0, 1)

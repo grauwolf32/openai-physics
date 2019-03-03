@@ -1,21 +1,19 @@
 import gym
-import physic_fast as physics
 import numpy as np
 
 from gym.utils import seeding
 from gym import error, spaces, utils
-from visualization import drawHyrosphere
-from math import sqrt
-from physic_fast import rotate_vec
 
 import pygame as pg 
-import camera
 
 from pygame.locals import *
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
+
+from gym_hyrosphere.envs.visualization import *
+from gym_hyrosphere.envs.physics import *
 
 
 class EnvSpec(object):
@@ -40,17 +38,17 @@ class HyrospherePhysicsConstantsClass(object):
         ob_low  = np.asarray([-max_value]*state_len)
         ob_high = np.asarray([-max_value]*state_len)
         
-        self.ac_space = spaces.Box(low=np.asarray([-max_ksi]*n_objects), high=np.array([max_ksi]*n_objects))
-        self.ob_space = spaces.Box(low=ob_low, high=ob_high)
+        self.ac_space = spaces.Box(low=np.asarray([-max_ksi]*n_objects), high=np.array([max_ksi]*n_objects), dtype=np.float32)
+        self.ob_space = spaces.Box(low=ob_low, high=ob_high, dtype=np.float32)
 
 HyrospherePhysicsConstants = HyrospherePhysicsConstantsClass()
 
 class HyrospherePhysicsEnv(gym.Env):
     def __init__(self, visualization=False):
-        self.hyrosphere = physics.HyroSphere(t_len=1.0, mass=4, dot_masses=np.asarray([1.0]*4),\
-                                        position = np.zeros(3), phi=np.zeros(4), omega=np.zeros(4), 
-                                        ksi=np.zeros(4), Omega=np.zeros(3), dOmegadt=np.zeros(3),
-                                        velocity=np.zeros(3), mu=0.001)
+        self.hyrosphere = HyroSphere(t_len=1.0, mass=4, dot_masses=np.asarray([1.0]*4),\
+                                    position = np.zeros(3), phi=np.zeros(4), omega=np.zeros(4), 
+                                    ksi=np.zeros(4), Omega=np.zeros(3), dOmegadt=np.zeros(3),
+                                    velocity=np.zeros(3), mu=0.001)
         self.total_time = 0.0
         self.action_space = HyrospherePhysicsConstants.ac_space
         self.observation_space = HyrospherePhysicsConstants.ob_space
@@ -95,10 +93,10 @@ class HyrospherePhysicsEnv(gym.Env):
         return ob, reward, done, info
 
     def reset(self):
-        self.hyrosphere = physics.HyroSphere(t_len=1.0, mass=4, dot_masses=np.asarray([1.0]*4),\
-                                        position = np.zeros(3), phi=np.zeros(4), omega=np.zeros(4), 
-                                        ksi=np.zeros(4), Omega=np.zeros(3), dOmegadt=np.zeros(3),
-                                        velocity=np.zeros(3), mu=0.001)
+        self.hyrosphere = HyroSphere(t_len=1.0, mass=4, dot_masses=np.asarray([1.0]*4),\
+                                    position = np.zeros(3), phi=np.zeros(4), omega=np.zeros(4), 
+                                    ksi=np.zeros(4), Omega=np.zeros(3), dOmegadt=np.zeros(3),
+                                    velocity=np.zeros(3), mu=0.001)
         self.total_time = 0.0
 
         U = self.hyrosphere.U 
@@ -150,9 +148,4 @@ class HyrospherePhysicsEnv(gym.Env):
 
     def close(self):
         pass
-
-if __name__ == "__main__":
-    env = HyrospherePhysicsEnv()
-    ob, reward, done, info = env.step(action=np.zeros(4))
-    print(ob, ob.shape)
 
