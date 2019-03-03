@@ -80,8 +80,8 @@ class HyrospherePhysicsEnv(gym.Env):
               dRdt[0], dRdt[1], dRdt[2], dRdt[3]))
         ob = np.asarray(ob)
 
-        reward =  np.dot(self.hyrosphere.velocity, np.asarray([1.0,0.0,0.0]))
-        reward -= np.abs(np.dot(self.hyrosphere.velocity, np.asarray([0.0,1.0,0.0]))) 
+        reward =  100*np.dot(self.hyrosphere.velocity, np.asarray([0.0,0.0,1.0]))
+        reward += np.abs(np.dot(self.hyrosphere.velocity, self.hyrosphere.velocity)) 
         self.total_time += dt
         
         done = False

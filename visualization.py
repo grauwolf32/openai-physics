@@ -179,6 +179,8 @@ def drawLines(start, end, color, position):
     glPopMatrix()
 
 def drawHyrosphere(hyrosphere):
+    #glTranslatef(hyrosphere.position[0],hyrosphere.position[1], hyrosphere.position[2])
+
     U = hyrosphere.U 
     A = U * np.sqrt(1.0/8.0)
 
@@ -218,6 +220,9 @@ def drawHyrosphere(hyrosphere):
     drawSphere(center=R[1], radius=hyrosphere.t_len*np.sqrt(3.0/8.0)/20, colors=(0,0,0, 0.2))
     drawSphere(center=R[2], radius=hyrosphere.t_len*np.sqrt(3.0/8.0)/20, colors=(0,0,0, 0.2))
     drawSphere(center=R[3], radius=hyrosphere.t_len*np.sqrt(3.0/8.0)/20, colors=(0,0,0, 0.2))
+ 
+    #os_vec = np.asarray([0.0,0.0,-hyrosphere.radius])
+    #drawArrow(os_vec, os_vec + hyrosphere.Omega , radius=0.02, color=(1,0,0,0.5), nseg=10, mseg=10)
 
     text = "position : {0:.2f} {1:.2f} {2:.2f}".format(hyrosphere.position[0], hyrosphere.position[1], hyrosphere.position[2])
     drawText(position=(-1.0,0.0,1.0), textString=text)
@@ -283,8 +288,8 @@ def main():
 
         K = np.append(R, [np.zeros(3), np.asarray([0,0,-hyrosphere.radius])], axis=0)
         drawHyrosphere(hyrosphere)
-        #sdrawArrows(K, K+F/20, radius=0.02, color=(1,0,0,0.5), nseg=10, mseg=10)
         pg.display.flip()
+
 
         cam.pop()
         pg.time.wait(20)
