@@ -140,7 +140,9 @@ class HyroSphere(object):
         # -----------------------------------------------
         Ms_all = np.sum(Ms, axis=0)
 
-        self.dOmegadt = np.dot(np.linalg.inv(J), (Ms_all + np.dot(dJdt, self.Omega)))
+        Ks = np.dot(J, self.Omega)
+
+        self.dOmegadt = np.dot(np.linalg.inv(J), (Ms_all - np.dot(dJdt, self.Omega) - np.cross(self.Omega, Ks)))
         
         # Get acceleration of center of the ball from center of mass acceleration
         dvmdt = np.cross(self.dOmegadt, mass_center) 

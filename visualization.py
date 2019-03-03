@@ -12,13 +12,20 @@ from OpenGL.GLUT import *
 import numpy as np
 from physic_fast import *
 
+def drawText(position, textString, font_size=32):     
+    font = pg.font.Font (None, font_size)
+    textSurface = font.render(textString, True, (255,255,255,255), (0,0,0,255))     
+    textData = pg.image.tostring(textSurface, "RGBA", True)     
+    glRasterPos3d(*position)     
+    glDrawPixels(textSurface.get_width(), textSurface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, textData)
+
 def drawSphere(center, radius, colors):
     glPushMatrix()
     glTranslatef(center[0], center[1], center[2])
     glEnable(GL_BLEND)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
     glColor4f(colors[0],colors[1],colors[2],colors[3])
-    glutSolidSphere(radius,200,200)
+    glutSolidSphere(radius,50,50)
     glDisable(GL_BLEND)
     glPopMatrix()
 
@@ -199,7 +206,7 @@ def drawHyrosphere(hyrosphere):
 
     #drawCylinders([zeros,zeros,zeros, zeros],A,radius=0.02, color=(1,0,0,0.5))
     #drawCylinders(A,R,radius=0.02, color=(1,0,0,0.5))
-    #drawArrow(A[0], R[0],radius=0.02, color=(1,0,0,0.5) )
+    drawArrow(np.zeros(3), hyrosphere.velocity,radius=0.02, color=(1,0,0,0.5) )
 
     drawCircle(B[0], A[0], A[0], color=(0,0,0.7,0.3))
     drawCircle(B[1], A[1], A[1], color=(0,0,0.7,0.3))
@@ -211,6 +218,13 @@ def drawHyrosphere(hyrosphere):
     drawSphere(center=R[1], radius=hyrosphere.t_len*np.sqrt(3.0/8.0)/20, colors=(0,0,0, 0.2))
     drawSphere(center=R[2], radius=hyrosphere.t_len*np.sqrt(3.0/8.0)/20, colors=(0,0,0, 0.2))
     drawSphere(center=R[3], radius=hyrosphere.t_len*np.sqrt(3.0/8.0)/20, colors=(0,0,0, 0.2))
+
+    text = "position : {0:.2f} {1:.2f} {2:.2f}".format(hyrosphere.position[0], hyrosphere.position[1], hyrosphere.position[2])
+    drawText(position=(-1.0,0.0,1.0), textString=text)
+
+    text = "velocity : {0:.2f} {1:.2f} {2:.2f}".format(hyrosphere.velocity[0], hyrosphere.velocity[1], hyrosphere.velocity[2])
+    drawText(position=(-1.0,0.0,0.8), textString=text)
+
 
 def main():
     pg.init()
@@ -236,7 +250,7 @@ def main():
                     pg.quit()
                     quit()
                 elif event.key == K_e:
-                    mc, F, R, dRdt = hyrosphere.move(dt=0.01,ksi_new=[0.0,0.0,0.0,0.5])
+                    R, dRdt = hyrosphere.move(dt=0.01,ksi_new=[0.0,0.0,0.0,0.5])
             
         keys = pg.key.get_pressed()
 
@@ -265,7 +279,7 @@ def main():
         
         #glEnable(GL_LIGHTING)
         cam.push()
-        mc, F, R, dRdt = hyrosphere.move(dt=0.01,ksi_new=np.zeros(4))
+        R, dRdt = hyrosphere.move(dt=0.01,ksi_new=np.zeros(4))
 
         K = np.append(R, [np.zeros(3), np.asarray([0,0,-hyrosphere.radius])], axis=0)
         drawHyrosphere(hyrosphere)
