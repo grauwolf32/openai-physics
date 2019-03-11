@@ -268,10 +268,41 @@ class LinearSphere(object):
         # Calculate Forces
         F  = np.dot(Mass, d2Rdt2 + [g_vec] * n)
         F = np.append(F, [self.mass * g_vec], axis=0)
+
+        self.speeds += self.accelerations * dt
+        self.accelerations = np.asarray(accel_new)
+        self.shifts += self.speeds * dt
+
+        for i in range(0, n): # can't speedup more than max_omega
+            if np.abs(self.speeds[i]) > self.max_speed:
+                self.speeds[i] = np.sign(self.speeds[i])*self.max_speed
+
+            if self.shifts[i] <= 0:
+                self.shifts[i] = 0
+                if self.speeds[i] < 0:
+                    dpdt = np.asarray([self.U[i]*self.speeds[i]/dt])
+                    F = np.append(F, dpdt, axis=0)
+                    self.speeds[i] = 0
+
+                
+                if self.accelerations[i] < 0:
+                    self.accelerations[i] = 0
+            
+            if self.shifts[i] > self.radius:
+                self.shifts[i] = self.radius    
+                if self.speeds[i] > 0:
+                    dpdt = np.asarray([self.U[i]*self.speeds[i]/dt])
+                    F = np.append(F, dpdt, axis=0)
+                    self.speeds[i] = 0
+
+                if self.accelerations[i] > 0:
+                    self.accelerations[i] = 0
+
         F_all = np.sum(F, axis=0)
     
         if self.position[-1] <= self.radius + 1e-3: # On the plane
             f_proj = np.dot(F_all, plane_normal)
+            
             if f_proj < 0.0:
                 N_abs = -f_proj
             else:
@@ -326,30 +357,6 @@ class LinearSphere(object):
             self.velocity -= vc_proj*plane_normal
 
         self.position += self.velocity * dt
-
-        self.speeds += self.accelerations * dt
-        self.accelerations = np.asarray(accel_new)
-        self.shifts += self.speeds * dt
-
-        for i in range(0, n): # can't speedup more than max_omega
-            if np.abs(self.speeds[i]) > self.max_speed:
-                self.speeds[i] = np.sign(self.speeds[i])*self.max_speed
-
-            if self.shifts[i] <= 0:
-                self.shifts[i] = 0
-                if self.speeds[i] < 0:
-                    self.speeds[i] = 0
-                
-                if self.accelerations[i] < 0:
-                    self.accelerations[i] = 0
-            
-            if self.shifts[i] > self.radius:
-                self.shifts[i] = self.radius    
-                if self.speeds[i] > 0:
-                    self.speeds[i] = 0
-                if self.accelerations[i] > 0:
-                    self.accelerations[i] = 0
-
         self.Omega += self.dOmegadt * dt
         self.Omega *= (1.0-self.friction_loss) # friction loss
 
