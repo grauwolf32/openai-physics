@@ -231,6 +231,30 @@ def drawHyrosphere(hyrosphere):
     text = "velocity : {0:.2f} {1:.2f} {2:.2f}".format(hyrosphere.velocity[0], hyrosphere.velocity[1], hyrosphere.velocity[2])
     drawText(position=(-1.0,0.0,0.8), textString=text)
 
+def drawLinearsphere(linearsphere):
+    #glTranslatef(hyrosphere.position[0],hyrosphere.position[1], hyrosphere.position[2])
+
+    U = linearsphere.U 
+    R = np.dot(np.diag(linearsphere.shifts), U)
+
+    drawLines(start=np.zeros((6,3)), end=U, color=(1,0,0,0.5), position=(0,0,0,0))
+    #drawCylinders([zeros,zeros,zeros, zeros],A,radius=0.02, color=(1,0,0,0.5))
+    #drawCylinders(A,R,radius=0.02, color=(1,0,0,0.5))
+    drawArrow(np.zeros(3), linearsphere.velocity,radius=0.02, color=(1,0,0,0.5) )
+
+    drawSphere(center=(0,0,0), radius=linearsphere.radius, colors=(90.0/256, 1.0, 39.0/256, 0.3))
+    for i in range(0, 6):
+        drawSphere(center=R[i], radius=linearsphere.radius/20, colors=(0,0,0, 0.2))
+ 
+    #os_vec = np.asarray([0.0,0.0,-hyrosphere.radius])
+    #drawArrow(os_vec, os_vec + hyrosphere.Omega , radius=0.02, color=(1,0,0,0.5), nseg=10, mseg=10)
+
+    #text = "position : {0:.2f} {1:.2f} {2:.2f}".format(linearsphere.position[0], linearsphere.position[1], linearsphere.position[2])
+    #drawText(position=(-1.0,0.0,1.0), textString=text)
+
+    #text = "velocity : {0:.2f} {1:.2f} {2:.2f}".format(hyrosphere.velocity[0], hyrosphere.velocity[1], hyrosphere.velocity[2])
+    #drawText(position=(-1.0,0.0,0.8), textString=text)
+
 class CameraBase(object):
     """camera.Base camera object all other inherit from..."""
     def __init__(self, pos=[0,0,0], rotation=[0,0,0]):

@@ -1,1 +1,2 @@
 from gym_hyrosphere.envs.hyrosphere_env import HyrospherePhysicsEnv
+from gym_hyrosphere.envs.linearsphere_env import LinearspherePhysicsEnv
