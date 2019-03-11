@@ -280,7 +280,7 @@ class LinearSphere(object):
             if self.shifts[i] <= 0:
                 self.shifts[i] = 0
                 if self.speeds[i] < 0:
-                    dpdt = np.asarray([self.U[i]*self.speeds[i]/dt])
+                    dpdt = np.asarray([self.dot_masses[i]*self.U[i]*self.speeds[i]/dt])
                     F = np.append(F, dpdt, axis=0)
                     self.speeds[i] = 0
 
@@ -291,7 +291,7 @@ class LinearSphere(object):
             if self.shifts[i] > self.radius:
                 self.shifts[i] = self.radius    
                 if self.speeds[i] > 0:
-                    dpdt = np.asarray([self.U[i]*self.speeds[i]/dt])
+                    dpdt = np.asarray([self.dot_masses[i]*self.U[i]*self.speeds[i]/dt])
                     F = np.append(F, dpdt, axis=0)
                     self.speeds[i] = 0
 
