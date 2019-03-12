@@ -130,8 +130,17 @@ class HyroSphere(object):
             F_fric = np.zeros(3)
 
         F_all += F_fric
-
         F = np.append(F, [F_fric], axis=0)
+        # Calculate impulses and forces
+        vc_proj = np.dot(self.velocity, plane_normal)
+
+        if vc_proj < 0.0 and self.position[-1] <= self.radius + 10e-3:
+            self.velocity -= vc_proj*plane_normal
+            F_imp = total_mass*vc_proj*plane_normal/dt
+
+            F_all += F_imp
+            F = np.append(F, [F_imp], axis=0)
+
         # -----------------------------------------------
         # Calculate Ms
         Ms = []
@@ -156,11 +165,6 @@ class HyroSphere(object):
             dvcdt = dvcdt - dvcdt_proj*plane_normal
 
         self.velocity += dvcdt * dt
-        vc_proj = np.dot(self.velocity, plane_normal)
-
-        if vc_proj < 0.0 and self.position[-1] <= self.radius + 10e-3:
-            self.velocity -= vc_proj*plane_normal
-
         self.position += self.velocity * dt
         self.omega += self.ksi * dt
         self.ksi = np.asarray(ksi_new)
